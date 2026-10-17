@@ -168,6 +168,7 @@ local function paintIcon(bb, name, x, y, size)
 end
 
 local OverlapGroup = require("ui/widget/overlapgroup")
+local LeftContainer = require("ui/widget/container/leftcontainer")
 local IconWidget = Widget:extend{ name = nil, size = 48 }
 function IconWidget:init() self.dimen = Geom:new{ w = self.size, h = self.size } end
 function IconWidget:paintTo(bb, x, y)
@@ -318,7 +319,7 @@ local function cardGrid(k, cards, w, add)
     local gap = px(12)
     local cols = cards.cols or 2
     local cw = math.floor((w - gap * (cols - 1)) / cols)
-    local ch = px(140)
+    local ch = cols == 1 and px(96) or px(140)
     local row, n = nil, 0
     local function flush()
         if row then add(row, ch) add(VerticalSpan:new{ width = gap }, gap) row, n = nil, 0 end
@@ -332,24 +333,41 @@ local function cardGrid(k, cards, w, add)
         else
             row = row or HorizontalGroup:new{ align = "top" }
             if n > 0 then row[#row + 1] = HorizontalSpan:new{ width = gap } end
-            local inner = VerticalGroup:new{ align = "center",
-                item.icon and IconWidget:new{ name = item.icon, size = px(44) } or VerticalSpan:new{ width = 0 },
-                VerticalSpan:new{ width = px(4) },
-                k.line("title", item.title, cw - px(16), false, true),
-                VerticalSpan:new{ width = px(6) },
-                k.line("caption", item.caption or "", cw - px(16), true) }
+            local list = cols == 1
+            local inner
+            if list then
+                local isz, pad = px(56), px(16)
+                local tw = cw - pad * 2 - isz - px(16) - px(56)
+                inner = HorizontalGroup:new{ align = "center",
+                    HorizontalSpan:new{ width = pad },
+                    item.icon and IconWidget:new{ name = item.icon, size = isz } or HorizontalSpan:new{ width = isz },
+                    HorizontalSpan:new{ width = px(16) },
+                    LeftContainer:new{ dimen = Geom:new{ w = tw, h = ch },
+                        VerticalGroup:new{ align = "left",
+                            k.line("title", item.title, tw, false, true),
+                            VerticalSpan:new{ width = px(4) },
+                            k.line("caption", item.caption or "", tw, true) } },
+                    HorizontalSpan:new{ width = px(56) + pad - px(2) } }
+            else
+                inner = VerticalGroup:new{ align = "center",
+                    item.icon and IconWidget:new{ name = item.icon, size = px(44) } or VerticalSpan:new{ width = 0 },
+                    VerticalSpan:new{ width = px(4) },
+                    k.line("title", item.title, cw - px(16), false, true),
+                    VerticalSpan:new{ width = px(6) },
+                    k.line("caption", item.caption or "", cw - px(16), true) }
+            end
             local card = k.card(inner, cw, ch)
             if item.pin then
                 local ps = px(32)
                 local pin = IconWidget:new{ name = item.pin.on and "pin_on" or "pin_off", size = ps }
-                pin.overlap_offset = { cw - ps - px(10), px(8) }
+                pin.overlap_offset = list and { cw - ps - px(18), math.floor((ch - ps) / 2) } or { cw - ps - px(10), px(8) }
                 card = OverlapGroup:new{ dimen = Geom:new{ w = cw, h = ch }, card, pin }
             end
             local box = tap(card, cw, ch, item.callback)
             if item.pin then
                 function box:onTapKG(_, ges)
-                    local d, ps = self.dimen, px(56)
-                    if ges and ges.pos and ges.pos.x >= d.x + d.w - ps and ges.pos.y <= d.y + ps then
+                    local d, ps = self.dimen, px(64)
+                    if ges and ges.pos and ges.pos.x >= d.x + d.w - ps and (list or ges.pos.y <= d.y + ps) then
                         item.pin.callback()
                     elseif item.callback then
                         item.callback()

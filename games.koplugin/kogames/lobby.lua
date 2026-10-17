@@ -7,7 +7,7 @@ local Registry = require("kogames.registry")
 local Lobby = {}
 Lobby.__index = Lobby
 
-local PER_PAGE = 6
+local PER_PAGE = 5
 
 function Lobby.new(host)
     return setmetatable({ host = host, page = 1 }, Lobby)
@@ -62,7 +62,7 @@ function Lobby:render()
     end
     self.host:showScreen({
         title = T("游戏"),
-        cards = { cols = 2, items = items },
+        cards = { cols = 1, items = items },
         pager = { page = self.page, pages = pages,
             on_prev = function() self.page = self.page - 1 self:render() end,
             on_next = function() self.page = self.page + 1 self:render() end },
