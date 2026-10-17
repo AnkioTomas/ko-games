@@ -31,6 +31,20 @@ function M.pinned(kind)
     return out
 end
 
+--- 卡片列表用：置顶游戏优先，不够用注册表顺序补齐到 count 个。
+function M.picks(kind, count)
+    local ok, out = pcall(M.pinned, kind)
+    out = ok and out or {}
+    local seen = {}
+    for _i, d in ipairs(out) do seen[d.id] = true end
+    for _i, d in ipairs(require("kogames.registry").all()) do
+        if #out >= count then break end
+        if not seen[d.id] then out[#out + 1] = d end
+    end
+    while #out > count do out[#out] = nil end
+    return out
+end
+
 --- 直接打开某个游戏，返回即关闭界面
 function M.play(kind, id)
     local def = require("kogames.registry").get(id)

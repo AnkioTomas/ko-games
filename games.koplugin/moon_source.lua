@@ -30,17 +30,9 @@ local widget = {
     build = function(_ctx, w, h)
         local L = require("kogames.launcher")
         -- 置顶的游戏优先，不够用热门游戏补齐；最后一格固定是「更多」
-        local want = rows() * COLS - 1
-        local ok, picks = pcall(L.pinned, "moon")
-        picks = ok and picks or {}
-        local seen = {}
-        for _i, d in ipairs(picks) do seen[d.id] = true end
-        for _i, d in ipairs(require("kogames.registry").all()) do
-            if #picks >= want then break end
-            if not seen[d.id] then picks[#picks + 1] = d end
-        end
+        local picks = L.picks("moon", rows() * COLS - 1)
         local items = {}
-        for i = 1, math.min(#picks, want) do
+        for i = 1, #picks do
             local def = picks[i]
             items[#items + 1] = { title = def.title, icon = def.art, callback = function() pcall(L.play, "moon", def.id) end }
         end
