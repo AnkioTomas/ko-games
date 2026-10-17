@@ -28,6 +28,8 @@ local widget = {
     icon = "sports_esports",
     heightRange = function() return { height = rows() * ROW_H + (rows() - 1) * GAP } end,
     build = function(_ctx, w, h)
+        -- 首页出现后稍等再查更新，不和首屏渲染抢网络
+        require("ui/uimanager"):scheduleIn(5, function() pcall(require("kogames.update").autoCheck) end)
         local L = require("kogames.launcher")
         -- 置顶的游戏优先，不够用热门游戏补齐；最后一格固定是「更多」
         local picks = L.picks("moon", rows() * COLS - 1)
@@ -56,13 +58,54 @@ local widget = {
     end,
 }
 
+-- 月读设置里的「游戏 - Games（版本号）」页：自动检查更新开关与手动检查。
+local function settingEntries(desktop)
+    local Update = require("kogames.update")
+    local Row = require("ui.themes.widgets.row")
+    return { {
+        group = "system",
+        order = 90,
+        id = "main",
+        icon = "sports_esports",
+        title = string.format("%s - Games（%s）", _("游戏"), Update.version()),
+        page = {
+            title = string.format("%s - Games（%s）", _("游戏"), Update.version()),
+            sections = function()
+                return { { title = _("更新"), rows = {
+                    function(iw)
+                        local on = Update.autoEnabled()
+                        return Row.widget({
+                            width = iw, chevron = false, kind = "toggle", icon = "update",
+                            title = _("自动检查更新"),
+                            subtitle = _("每天最多检查一次，发现新版本时提示下载安装"),
+                            status = on and _("开") or _("关"), status_on = on,
+                            callback = function()
+                                Update.setAuto(not on)
+                                desktop:updateView()
+                            end,
+                        })
+                    end,
+                    function(iw)
+                        return Row.widget({
+                            width = iw, chevron = false, kind = "action", icon = "system_update",
+                            title = _("检查更新"),
+                            status = Update.version(), status_on = true,
+                            callback = function() Update.manualCheck() end,
+                        })
+                    end,
+                } } }
+            end,
+        },
+    } }
+end
+
 return {
     api = 1,
     id = ID,
     provides = {
         source = false,
         home_widgets = { widget },
-        features = { panel = { actions = function()
+        features = { setting = { entries = settingEntries }, panel = { actions = function()
             return { {
                 id = "play", scope = "desktop", title = _("游戏"), icon = "sports_esports",
                 run = function() pcall(openLobby) end,
