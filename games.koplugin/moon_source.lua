@@ -15,29 +15,52 @@ local function openLobby()
     require("kogames.launcher").open("moon")
 end
 
+local COLS, ROW_H, GAP = 4, 130, 10
+
+local function rows()
+    local n = math.floor(tonumber(require("utils.settings").getSource(ID).rows) or 1)
+    return math.max(1, math.min(3, n))
+end
+
 local widget = {
     id = "entry", -- 月读补成 ext.kogames.entry
     title = _("游戏"),
     icon = "sports_esports",
-    heightRange = function() return { height = 150 } end,
+    heightRange = function() return { height = rows() * ROW_H + (rows() - 1) * GAP } end,
     build = function(_ctx, w, h)
         local L = require("kogames.launcher")
-        local items = {}
-        -- 置顶的游戏优先（最多 3 个），不够用热门游戏补齐
+        -- 置顶的游戏优先，不够用热门游戏补齐；最后一格固定是「更多」
+        local want = rows() * COLS - 1
         local ok, picks = pcall(L.pinned, "moon")
         picks = ok and picks or {}
         local seen = {}
         for _i, d in ipairs(picks) do seen[d.id] = true end
         for _i, d in ipairs(require("kogames.registry").all()) do
-            if #picks >= 3 then break end
+            if #picks >= want then break end
             if not seen[d.id] then picks[#picks + 1] = d end
         end
-        for i = 1, math.min(#picks, 3) do
+        local items = {}
+        for i = 1, math.min(#picks, want) do
             local def = picks[i]
             items[#items + 1] = { title = def.title, icon = def.art, callback = function() pcall(L.play, "moon", def.id) end }
         end
         items[#items + 1] = { title = _("更多"), icon = PLUGIN_DIR .. "/assets/more.svg", callback = openLobby }
-        return require("kogames.ui.screen").shelf(items, w, h)
+        return require("kogames.ui.screen").shelf(items, w, h, COLS)
+    end,
+    settings = function(desktop, _id)
+        local Settings = require("utils.settings")
+        local items = { { buttons = {} } }
+        for n = 1, 3 do
+            table.insert(items[1].buttons, {
+                text = (rows() == n and "✓ " or "") .. string.format(_("%d 行"), n),
+                callback = function()
+                    Settings.getSource(ID).rows = n
+                    Settings.saveSource(ID)
+                    desktop:onEvent("home_refresh")
+                end,
+            })
+        end
+        require("ui.themes.widgets.sheet"):new{ title = _("游戏"), items = items }:show()
     end,
 }
 

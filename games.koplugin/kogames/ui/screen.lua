@@ -628,23 +628,35 @@ function GameScreen:showSettings(intro)
     return true
 end
 
---- 首页组件用：一排卡片，图标在上、标题在下；items = { { title=, icon=, callback= } }
-function GameScreen.shelf(items, w, h)
+--- 首页组件用：每行 cols 张卡片，图标在上、标题在下；items = { { title=, icon=, callback= } }
+function GameScreen.shelf(items, w, h, cols)
     local k = kit()
+    cols = cols or #items
     local gap = px(10)
-    local n = #items
-    local cw = math.floor((w - gap * (n - 1)) / n)
-    local isz = math.min(math.floor(h * 0.5), cw - px(16))
-    local row = HorizontalGroup:new{ align = "center" }
-    for i, it in ipairs(items) do
-        if i > 1 then row[#row + 1] = HorizontalSpan:new{ width = gap } end
-        local inner = VerticalGroup:new{ align = "center",
-            IconWidget:new{ name = it.icon, size = isz },
-            VerticalSpan:new{ width = px(6) },
-            k.line("caption", it.title, cw - px(12), false, true) }
-        row[#row + 1] = tap(k.card(inner, cw, h), cw, h, it.callback)
+    local rows = math.ceil(#items / cols)
+    local cw = math.floor((w - gap * (cols - 1)) / cols)
+    local rh = math.floor((h - gap * (rows - 1)) / rows)
+    local isz = math.min(math.floor(rh * 0.5), cw - px(16))
+    local col = VerticalGroup:new{ align = "left" }
+    for r = 1, rows do
+        if r > 1 then col[#col + 1] = VerticalSpan:new{ width = gap } end
+        local row = HorizontalGroup:new{ align = "top" }
+        for c = 1, cols do
+            local it = items[(r - 1) * cols + c]
+            if c > 1 then row[#row + 1] = HorizontalSpan:new{ width = gap } end
+            if it then
+                local inner = VerticalGroup:new{ align = "center",
+                    IconWidget:new{ name = it.icon, size = isz },
+                    VerticalSpan:new{ width = px(6) },
+                    k.line("caption", it.title, cw - px(12), false, true) }
+                row[#row + 1] = tap(k.card(inner, cw, rh), cw, rh, it.callback)
+            else
+                row[#row + 1] = HorizontalSpan:new{ width = cw }
+            end
+        end
+        col[#col + 1] = row
     end
-    return CenterContainer:new{ dimen = Geom:new{ w = w, h = h }, row }
+    return CenterContainer:new{ dimen = Geom:new{ w = w, h = h }, col }
 end
 
 function GameScreen:goBack()

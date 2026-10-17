@@ -232,4 +232,5 @@ return {
     ["玩法"] = "How to play",
     ["全部游戏"] = "All games",
     ["更多"] = "More",
+    ["%d 行"] = "%d row(s)",
 }
