@@ -13,6 +13,7 @@ view = {
   },
   on_swipe = function(dir) end,                -- dir = "north"|"south"|"east"|"west"
   buttons = { { {text=, callback=, enabled=, selected=}, ... } 一行, { label = "分组标题" } },
+  pager   = { page=, pages=, on_prev=fn, on_next=fn },   -- 翻页条（主题 pager，无月读时回落为按钮）
   cards   = { cols = 2, items = { {title=, caption=, callback=} | {label=} } },   -- 大厅卡片
   back    = function() end,                    -- 有则标题栏左侧是返回，否则右侧是关闭
   on_close = function() end,                   -- 点右上角 × 或返回键关闭时
@@ -386,6 +387,28 @@ function GameScreen:init()
     end
 
     if v.cards then cardGrid(k, v.cards, inner, add) end
+
+    local pg = v.pager
+    if pg and pg.pages > 1 then
+        local widget
+        if k.moon then
+            local ok, w = pcall(function()
+                return require("ui.themes.widgets.pager").widget{ width = inner, page = pg.page, pages = pg.pages,
+                    on_prev = pg.on_prev, on_next = pg.on_next }
+            end)
+            widget = ok and w or nil
+        end
+        if widget then
+            add(widget, widget:getSize().h)
+        else
+            add(buttonRow(k, {
+                { text = "‹", enabled = pg.page > 1, callback = pg.on_prev },
+                { text = ("%d / %d"):format(pg.page, pg.pages) },
+                { text = "›", enabled = pg.page < pg.pages, callback = pg.on_next },
+            }, inner), k.btn_h)
+        end
+        add(VerticalSpan:new{ width = gap }, gap)
+    end
 
     for _, entry in ipairs(rows) do
         if entry.label then

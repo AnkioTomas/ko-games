@@ -7,7 +7,7 @@ local Registry = require("kogames.registry")
 local Lobby = {}
 Lobby.__index = Lobby
 
-local PER_PAGE = 8
+local PER_PAGE = 6
 
 function Lobby.new(host)
     return setmetatable({ host = host, page = 1 }, Lobby)
@@ -24,27 +24,22 @@ function Lobby:render()
     local pages = math.max(1, math.ceil(#defs / PER_PAGE))
     self.page = math.min(self.page, pages)
     local items, last_tier = {}, nil
+    local multi = false
+    for _, d in ipairs(defs) do if d.tier ~= defs[1].tier then multi = true end end
     for i = (self.page - 1) * PER_PAGE + 1, math.min(#defs, self.page * PER_PAGE) do
         local def = defs[i]
-        if def.tier ~= last_tier then
-            last_tier = def.tier
+        if multi and def.tier ~= last_tier then
             items[#items + 1] = { label = Registry.TIERS[def.tier] or def.tier }
         end
+        last_tier = def.tier
         items[#items + 1] = { title = def.title, caption = def.desc, icon = def.art, callback = function() self:play(def) end }
-    end
-    local buttons = {}
-    if pages > 1 then
-        buttons[#buttons + 1] = {
-            { text = T("上一页"), enabled = self.page > 1, callback = function() self.page = self.page - 1 self:render() end },
-            { text = ("%d / %d"):format(self.page, pages) },
-            { text = T("下一页"), enabled = self.page < pages, callback = function() self.page = self.page + 1 self:render() end },
-        }
     end
     self.host:showScreen({
         title = T("游戏"),
-        status = T("选一个玩吧"),
         cards = { cols = 2, items = items },
-        buttons = buttons,
+        pager = { page = self.page, pages = pages,
+            on_prev = function() self.page = self.page - 1 self:render() end,
+            on_next = function() self.page = self.page + 1 self:render() end },
         on_close = function() Lobby.current = nil end,
     })
 end

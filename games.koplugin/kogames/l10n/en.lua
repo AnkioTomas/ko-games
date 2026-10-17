@@ -3,8 +3,6 @@ return {
     ["选一个玩吧"] = "Pick one to play",
     ["关闭"] = "Close",
     ["返回"] = "Back",
-    ["上一页"] = "Prev",
-    ["下一页"] = "Next",
     ["静态益智 · 墨水屏最佳"] = "Static puzzles · best for e-ink",
     ["回合制 · 慢节奏"] = "Turn-based · slow paced",
     ["实时 · 需实测刷新"] = "Real-time · needs refresh testing",

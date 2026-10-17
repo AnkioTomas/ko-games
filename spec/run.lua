@@ -208,7 +208,7 @@ test("lobby lists games and launches one", function()
     for _, it in ipairs(H.view.cards.items) do
         if it.callback then n = n + 1 first = first or it end
     end
-    assert(n == math.min(8, #Registry.LIST))
+    assert(n == math.min(6, #Registry.LIST))
     first.callback()
     assert(H.view.title ~= "游戏")
     H.view.back() -- 标题栏返回 → 大厅
