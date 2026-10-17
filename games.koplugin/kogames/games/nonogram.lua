@@ -166,7 +166,7 @@ local function maxLen(list)
     return m
 end
 
-local M = { id = "nonogram", title = T("数织"), icon = "grid_on", art = "icon_nonogram", tier = "A", desc = T("按数字提示涂出图案"), core = Core }
+local M = { id = "nonogram", title = T("数织"), icon = "grid_on", art = "icon_nonogram", tier = "A", desc = T("按数字提示涂出图案"), help = T("每行左侧、每列上方的数字表示该行/列连续涂黑的格数，多个数字之间至少隔一个空格。\n点按格子涂黑；切换到「打叉」模式再点按，或长按格子，可标记确定为空的格子。\n涂出符合所有提示的图案即完成；已满足的提示会变灰。"), core = Core }
 
 function M.new(ctx)
     local self = {}

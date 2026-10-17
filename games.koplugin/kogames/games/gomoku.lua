@@ -99,7 +99,7 @@ function Core.undo(s)
     s.winner = nil
 end
 
-local M = { id = "gomoku", title = T("五子棋"), icon = "radio_button_unchecked", art = "stone_black", tier = "A", desc = T("人机对弈"), core = Core }
+local M = { id = "gomoku", title = T("五子棋"), icon = "radio_button_unchecked", art = "stone_black", tier = "A", desc = T("人机对弈"), help = T("你执黑先手，点按交叉点落子。横、竖、斜任意方向先连成五子者获胜。\n下错了可以点「悔棋」撤回一步。"), core = Core }
 
 function M.new(ctx)
     local self = {}

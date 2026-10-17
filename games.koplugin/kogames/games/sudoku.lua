@@ -123,7 +123,7 @@ function Core.solved(s)
     return true
 end
 
-local M = { id = "sudoku", title = T("数独"), icon = "apps", art = "icon_sudoku", tier = "A", desc = T("唯一解数独"), core = Core, LEVELS = LEVELS }
+local M = { id = "sudoku", title = T("数独"), icon = "apps", art = "icon_sudoku", tier = "A", desc = T("唯一解数独"), help = T("在 9×9 的格子里填入 1–9，使每一行、每一列和每个 3×3 宫内数字都不重复。\n先点选一个空格，再点下方数字填入；灰色数字是你填的，黑色是题目给定。填错冲突的格子会反色显示。\n卡住了可以点「提示」，会填入一个正确数字。"), core = Core, LEVELS = LEVELS }
 
 function M.new(ctx)
     local self = {}

@@ -64,7 +64,7 @@ end
 
 Core.LEVELS = LEVELS
 
-local M = { id = "sokoban", title = T("推箱子"), icon = "inventory_2", art = "box", tier = "A", desc = T("把箱子推到目标上"), core = Core }
+local M = { id = "sokoban", title = T("推箱子"), icon = "inventory_2", art = "box", tier = "A", desc = T("把箱子推到目标上"), help = T("控制小人把所有箱子推到标有圆圈的目标位置。箱子只能推、不能拉，也不能一次推两个。\n在棋盘上滑动或点下方方向键移动。走进死路可以点「撤销」或「重来」。"), core = Core }
 
 function M.new(ctx)
     local self = {}

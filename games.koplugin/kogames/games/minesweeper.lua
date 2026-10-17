@@ -83,7 +83,7 @@ function Core.flag(s, r, c)
     s.flags = s.flags + (cell.flag and 1 or -1)
 end
 
-local M = { id = "minesweeper", title = T("扫雷"), icon = "flag", art = "mine", tier = "A", desc = T("经典扫雷"), core = Core, LEVELS = LEVELS }
+local M = { id = "minesweeper", title = T("扫雷"), icon = "flag", art = "mine", tier = "A", desc = T("经典扫雷"), help = T("点按格子翻开它。数字表示周围 8 格里有几颗雷；翻开所有不是雷的格子即获胜，踩到雷则失败。\n怀疑是雷的格子可以标记：切换到「标记」模式再点按，或长按格子。\n第一次点击一定安全。"), core = Core, LEVELS = LEVELS }
 
 function M.new(ctx)
     local self = {}

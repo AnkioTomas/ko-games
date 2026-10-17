@@ -165,7 +165,7 @@ function Core.autoCollect(s)
 end
 
 local M = { id = "klondike", title = T("接龙"), icon = "icon_klondike", art = "icon_klondike", tier = "A",
-    desc = T("经典 Klondike 纸牌接龙"), core = Core }
+    desc = T("经典 Klondike 纸牌接龙"), help = T("目标：把 52 张牌按花色从 A 到 K 依次收到右上角的四个收牌位。\n桌面七列中，牌可以按「红黑交替、点数递减」叠放；空列只能放 K。\n点按一张明牌选中它（连同它下面的牌），再点目标列或收牌位。点左上角牌堆翻牌，牌堆空了再点一次可重新洗牌。\n「自动收牌」会把能收的牌都收走；可撤销任意多步。"), core = Core }
 
 function M.new(ctx)
     local self = {}

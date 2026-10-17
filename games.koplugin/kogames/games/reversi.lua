@@ -178,7 +178,7 @@ function Core.undo(s)
     return true
 end
 
-local M = { id = "reversi", title = T("黑白棋"), icon = "radio_button_unchecked", art = "icon_reversi", tier = "A", desc = T("人机对弈"), core = Core }
+local M = { id = "reversi", title = T("黑白棋"), icon = "radio_button_unchecked", art = "icon_reversi", tier = "A", desc = T("人机对弈"), help = T("你执黑先手，只能落在能夹住对方棋子的位置（棋盘上有小点提示）。被夹住的对方棋子会翻成你的颜色。\n无处可下时自动跳过；双方都无子可下时，棋子多的一方获胜。"), core = Core }
 
 function M.new(ctx)
     local self = {}

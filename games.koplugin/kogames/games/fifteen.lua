@@ -85,7 +85,7 @@ local function copyBoard(b)
     return t
 end
 
-local M = { id = "fifteen", title = T("数字华容道"), icon = "apps", art = "icon_fifteen", tier = "A", desc = T("滑动数字归位"), core = Core }
+local M = { id = "fifteen", title = T("数字华容道"), icon = "apps", art = "icon_fifteen", tier = "A", desc = T("滑动数字归位"), help = T("点按空格同一行或同一列的数字，该方向上的数字会整体滑向空格；也可以在棋盘上滑动。\n把数字按从小到大、从左到右排好，空格留在右下角即过关。步数越少越好。"), core = Core }
 
 function M.new(ctx)
     local self = {}

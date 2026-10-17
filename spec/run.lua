@@ -224,7 +224,7 @@ test("l10n: every source string has en and zh_TW translations", function()
         local f = assert(io.open(path))
         for line in f:lines() do
             if not line:match("^%s*%-%-") then
-                for k in line:gmatch('[T_]%("([^"]*[\228-\233][^"]*)"') do keys[k] = true end
+                for k in line:gmatch('[T_]%("([^"]*[\228-\233][^"]*)"') do keys[(k:gsub("\\n", "\n"))] = true end
             end
         end
         f:close()

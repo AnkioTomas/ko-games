@@ -152,7 +152,7 @@ function Core.aiMove(s, depth)
     return bc
 end
 
-local M = { id = "connect4", title = T("四子棋"), icon = "radio_button_unchecked", art = "icon_connect4", tier = "A", desc = T("人机对弈"), core = Core }
+local M = { id = "connect4", title = T("四子棋"), icon = "radio_button_unchecked", art = "icon_connect4", tier = "A", desc = T("人机对弈"), help = T("你执黑先手。点按任意一列，棋子会落到该列最底部的空位。\n横、竖、斜任意方向先连成四子者获胜。\n下错了可以悔棋，会同时撤回你和对手的最近一步。"), core = Core }
 
 function M.new(ctx)
     local self = {}

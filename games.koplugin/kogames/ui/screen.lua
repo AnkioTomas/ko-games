@@ -13,6 +13,7 @@ view = {
   },
   on_swipe = function(dir) end,                -- dir = "north"|"south"|"east"|"west"
   buttons = { { {text=, callback=, enabled=, selected=}, ... } 一行, { label = "分组标题" } },
+  help    = { title=, text= },                           -- 玩法说明：标题栏右上角 ? 按钮；help_now=true 时进入即弹出
   pager   = { page=, pages=, on_prev=fn, on_next=fn },   -- 翻页条（主题 pager，无月读时回落为按钮）
   cards   = { cols = 2, items = { {title=, caption=, callback=, pin={on=, callback=}} | {label=} } },   -- 大厅卡片
   back    = function() end,                    -- 有则标题栏左侧是返回，否则右侧是关闭
@@ -401,6 +402,10 @@ function GameScreen:init()
     else
         right = { icon = "close", text = "✕", callback = function() self:onClose() end }
     end
+    if v.help then
+        right = { icon = "help", text = "?", callback = function() self:showHelp() end }
+        if v.help_now then UIManager:nextTick(function() self:showHelp() end) end
+    end
     add(k.title(W - 2 * margin, v.title or "", left, right), k.title_h)
     add(VerticalSpan:new{ width = px(10) }, px(10))
 
@@ -497,6 +502,14 @@ function GameScreen:onSwipe(_, ges)
         self.view.on_swipe(ges.direction)
         return true
     end
+end
+
+function GameScreen:showHelp()
+    local h = self.view.help
+    if not h then return true end
+    local InfoMessage = require("ui/widget/infomessage")
+    UIManager:show(InfoMessage:new{ text = (h.title or "") .. "\n\n" .. h.text, width = math.floor(Screen:getWidth() * 0.86) })
+    return true
 end
 
 function GameScreen:goBack()
