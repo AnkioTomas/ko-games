@@ -2,19 +2,21 @@
 2048。滑动（或方向按钮）合并方块；可撤销一步；自动存档。
 --]]
 local T = require("kogames.l10n")
-local N = 4
+local SIZES = { 3, 4, 5, 6 }
 
 local Core = {}
 
-function Core.fresh(rng)
-    local s = { board = {}, score = 0, won = false, over = false }
-    for i = 1, N * N do s.board[i] = 0 end
+function Core.fresh(rng, n)
+    n = n or 4
+    local s = { n = n, board = {}, score = 0, won = false, over = false }
+    for i = 1, n * n do s.board[i] = 0 end
     Core.spawn(s, rng)
     Core.spawn(s, rng)
     return s
 end
 
 function Core.spawn(s, rng)
+    local N = s.n or 4
     local empty = {}
     for i = 1, N * N do if s.board[i] == 0 then empty[#empty + 1] = i end end
     if #empty == 0 then return end
@@ -22,7 +24,7 @@ function Core.spawn(s, rng)
 end
 
 -- 把一行向前（下标小的一侧）压紧合并，返回新行、得到的分、是否变化
-local function slide(line)
+local function slide(line, N)
     local out, gained, last = {}, 0, nil
     for _, v in ipairs(line) do
         if v ~= 0 then
@@ -47,6 +49,7 @@ local DIRS = { west = true, east = true, north = true, south = true }
 --- 返回是否发生移动；会改 s.board / s.score，不生成新方块。
 function Core.move(s, dir)
     if not DIRS[dir] then return false end
+    local N = s.n or 4
     local moved = false
     for k = 1, N do
         local line = {}
@@ -58,7 +61,7 @@ function Core.move(s, dir)
             else idx = (N - i) * N + k end
             line[i] = s.board[idx]
         end
-        local out, gained, changed = slide(line)
+        local out, gained, changed = slide(line, N)
         if changed then
             moved = true
             s.score = s.score + gained
@@ -77,6 +80,7 @@ function Core.move(s, dir)
 end
 
 function Core.canMove(s)
+    local N = s.n or 4
     for i = 1, N * N do if s.board[i] == 0 then return true end end
     for r = 1, N do
         for c = 1, N do
@@ -89,7 +93,8 @@ function Core.canMove(s)
 end
 
 local function copy(s)
-    local t = { board = {}, score = s.score, won = s.won, over = s.over }
+    local N = s.n or 4
+    local t = { n = s.n, board = {}, score = s.score, won = s.won, over = s.over }
     for i = 1, N * N do t.board[i] = s.board[i] end
     return t
 end
@@ -99,6 +104,7 @@ local M = { id = "2048", title = "2048", icon = "grid_view", art = "icon_2048", 
 function M.new(ctx)
     local self = {}
     local s, prev
+    local function key() return s.n == 4 and "best" or ("best" .. s.n) end
 
     local function persist() ctx:save({ state = s, prev = prev }) end
 
@@ -110,16 +116,22 @@ function M.new(ctx)
         Core.spawn(s, ctx.rng)
         if not Core.canMove(s) then
             s.over = true
-            if ctx:record("best", s.score) then ctx:notify(T("新纪录：%d", s.score)) end
+            if ctx:record(key(), s.score) then ctx:notify(T("新纪录：%d", s.score)) end
         end
         persist()
         self.render()
     end
 
     function self.render()
-        local best = ctx:best("best") or 0
+        local best = ctx:best(key()) or 0
+        local N = s.n
         local status = (T("得分 %d    最高 %d")):format(s.score, math.max(best, s.score))
         if s.over then status = status .. T("    游戏结束") elseif s.won then status = status .. T("    已达成 2048") end
+        local size_row = {}
+        for _, n in ipairs(SIZES) do
+            size_row[#size_row + 1] = { text = n .. "×" .. n, selected = n == s.n,
+                callback = function() if n ~= s.n then s, prev = Core.fresh(ctx.rng, n), nil persist() self.render() end end }
+        end
         ctx:render({
             title = "2048",
             status = status,
@@ -134,6 +146,7 @@ function M.new(ctx)
             },
             on_swipe = step,
             buttons = {
+                size_row,
                 {
                     { text = "←", callback = function() step("west") end },
                     { text = "↑", callback = function() step("north") end },
@@ -142,7 +155,7 @@ function M.new(ctx)
                 },
                 {
                     { text = T("撤销"), enabled = prev ~= nil, callback = function() s, prev = prev, nil persist() self.render() end },
-                    { text = T("新游戏"), callback = function() s, prev = Core.fresh(ctx.rng), nil persist() self.render() end },
+                    { text = T("新游戏"), callback = function() s, prev = Core.fresh(ctx.rng, s.n), nil persist() self.render() end },
                 },
             },
         })
@@ -150,7 +163,11 @@ function M.new(ctx)
 
     function self.start()
         local saved = ctx:load()
-        if saved and saved.state then s, prev = saved.state, saved.prev else s = Core.fresh(ctx.rng) end
+        if saved and saved.state then
+            s, prev = saved.state, saved.prev
+            s.n = s.n or 4
+            if prev then prev.n = prev.n or s.n end
+        else s = Core.fresh(ctx.rng, 4) end
         self.render()
     end
 
