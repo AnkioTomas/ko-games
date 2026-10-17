@@ -19,33 +19,25 @@ local widget = {
     id = "entry", -- 月读补成 ext.kogames.entry
     title = _("游戏"),
     icon = "sports_esports",
-    heightRange = function() return { height = 110 } end,
+    heightRange = function() return { height = 150 } end,
     build = function(_ctx, w, h)
-        local ok, Button = pcall(require, "ui.themes.widgets.button")
-        if not ok then Button = require("ui/widget/button") end
-        local CenterContainer = require("ui/widget/container/centercontainer")
-        local Geom = require("ui/geometry")
-        -- 有置顶游戏时每个置顶游戏一个按钮（最多 3 个）加「更多」；没有则只放「玩两把」
         local L = require("kogames.launcher")
-        local ok2, pinned = pcall(L.pinned, "moon")
-        local btns = {}
-        if ok2 then
-            for i = 1, math.min(#pinned, 3) do
-                local def = pinned[i]
-                btns[#btns + 1] = { text = def.title, callback = function() pcall(L.play, "moon", def.id) end }
-            end
+        local items = {}
+        -- 置顶的游戏优先（最多 3 个），不够用热门游戏补齐
+        local ok, picks = pcall(L.pinned, "moon")
+        picks = ok and picks or {}
+        local seen = {}
+        for _i, d in ipairs(picks) do seen[d.id] = true end
+        for _i, d in ipairs(require("kogames.registry").all()) do
+            if #picks >= 3 then break end
+            if not seen[d.id] then picks[#picks + 1] = d end
         end
-        if #btns > 0 then btns[#btns + 1] = { text = _("更多"), callback = openLobby } else btns[1] = { text = _("玩两把"), callback = openLobby } end
-        local HorizontalGroup = require("ui/widget/horizontalgroup")
-        local HorizontalSpan = require("ui/widget/horizontalspan")
-        local gap = 8
-        local bw = math.floor((w * 0.9 - gap * (#btns - 1)) / #btns)
-        local row = HorizontalGroup:new{}
-        for i, b in ipairs(btns) do
-            if i > 1 then row[#row + 1] = HorizontalSpan:new{ width = gap } end
-            row[#row + 1] = Button:new{ text = b.text, width = bw, callback = b.callback }
+        for i = 1, math.min(#picks, 3) do
+            local def = picks[i]
+            items[#items + 1] = { title = def.title, icon = def.art, callback = function() pcall(L.play, "moon", def.id) end }
         end
-        return CenterContainer:new{ dimen = Geom:new{ w = w, h = h }, row }
+        items[#items + 1] = { title = _("更多"), icon = PLUGIN_DIR .. "/assets/more.svg", callback = openLobby }
+        return require("kogames.ui.screen").shelf(items, w, h)
     end,
 }
 

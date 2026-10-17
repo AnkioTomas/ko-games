@@ -1,0 +1,7 @@
+ko-games 自写代码与素材以 AGPL-3.0 发布（见 LICENSE）。
+
+第三方素材：
+- games.koplugin/assets/pin_off.svg、pin_on.svg 的图钉轮廓取自 Google Material Icons（push_pin），Apache License 2.0，
+  https://github.com/google/material-design-icons
+
+游戏规则均为公共领域的经典规则，代码为自行实现，未拷贝其他项目的源码。

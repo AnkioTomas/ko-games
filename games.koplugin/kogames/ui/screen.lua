@@ -628,6 +628,25 @@ function GameScreen:showSettings(intro)
     return true
 end
 
+--- 首页组件用：一排卡片，图标在上、标题在下；items = { { title=, icon=, callback= } }
+function GameScreen.shelf(items, w, h)
+    local k = kit()
+    local gap = px(10)
+    local n = #items
+    local cw = math.floor((w - gap * (n - 1)) / n)
+    local isz = math.min(math.floor(h * 0.5), cw - px(16))
+    local row = HorizontalGroup:new{ align = "center" }
+    for i, it in ipairs(items) do
+        if i > 1 then row[#row + 1] = HorizontalSpan:new{ width = gap } end
+        local inner = VerticalGroup:new{ align = "center",
+            IconWidget:new{ name = it.icon, size = isz },
+            VerticalSpan:new{ width = px(6) },
+            k.line("caption", it.title, cw - px(12), false, true) }
+        row[#row + 1] = tap(k.card(inner, cw, h), cw, h, it.callback)
+    end
+    return CenterContainer:new{ dimen = Geom:new{ w = w, h = h }, row }
+end
+
 function GameScreen:goBack()
     if self.view.back then self.view.back() else self:onClose() end
     return true
