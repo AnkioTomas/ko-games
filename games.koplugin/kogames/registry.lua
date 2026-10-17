@@ -9,7 +9,7 @@ local Registry = {}
 
 Registry.LIST = { "g2048", "minesweeper", "sudoku", "gomoku", "sokoban",
     "connect4", "reversi", "fifteen", "nonogram", "klondike",
-    "unruly", "lightup", "hitori", "tents", "filling", "net", "flood", "twentyfour", "mastermind", "hanoi", "memory" }
+    "twentyfour", "mastermind", "hanoi", "memory" }
 
 Registry.TIERS = {
     A = T("静态益智 · 墨水屏最佳"),
