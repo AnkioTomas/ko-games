@@ -14,7 +14,7 @@ view = {
   on_swipe = function(dir) end,                -- dir = "north"|"south"|"east"|"west"
   buttons = { { {text=, callback=, enabled=, selected=}, ... } 一行, { label = "分组标题" } },
   pager   = { page=, pages=, on_prev=fn, on_next=fn },   -- 翻页条（主题 pager，无月读时回落为按钮）
-  cards   = { cols = 2, items = { {title=, caption=, callback=} | {label=} } },   -- 大厅卡片
+  cards   = { cols = 2, items = { {title=, caption=, callback=, pin={on=, callback=}} | {label=} } },   -- 大厅卡片
   back    = function() end,                    -- 有则标题栏左侧是返回，否则右侧是关闭
   on_close = function() end,                   -- 点右上角 × 或返回键关闭时
 }
@@ -167,6 +167,7 @@ local function paintIcon(bb, name, x, y, size)
     return true
 end
 
+local OverlapGroup = require("ui/widget/overlapgroup")
 local IconWidget = Widget:extend{ name = nil, size = 48 }
 function IconWidget:init() self.dimen = Geom:new{ w = self.size, h = self.size } end
 function IconWidget:paintTo(bb, x, y)
@@ -337,7 +338,26 @@ local function cardGrid(k, cards, w, add)
                 k.line("title", item.title, cw - px(16), false, true),
                 VerticalSpan:new{ width = px(6) },
                 k.line("caption", item.caption or "", cw - px(16), true) }
-            row[#row + 1] = tap(k.card(inner, cw, ch), cw, ch, item.callback)
+            local card = k.card(inner, cw, ch)
+            if item.pin then
+                local ps = px(40)
+                local pin = IconWidget:new{ name = item.pin.on and "pin_on" or "pin_off", size = ps }
+                pin.overlap_offset = { cw - ps - px(6), px(6) }
+                card = OverlapGroup:new{ dimen = Geom:new{ w = cw, h = ch }, card, pin }
+            end
+            local box = tap(card, cw, ch, item.callback)
+            if item.pin then
+                function box:onTapKG(_, ges)
+                    local d, ps = self.dimen, px(56)
+                    if ges and ges.pos and ges.pos.x >= d.x + d.w - ps and ges.pos.y <= d.y + ps then
+                        item.pin.callback()
+                    elseif item.callback then
+                        item.callback()
+                    end
+                    return true
+                end
+            end
+            row[#row + 1] = box
             n = n + 1
             if n == cols then flush() end
         end

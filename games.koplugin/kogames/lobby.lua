@@ -19,8 +19,33 @@ function Lobby:show()
     return self
 end
 
+function Lobby:pinned()
+    local set = {}
+    for _, id in ipairs(self.host:getSetting("pinned", {})) do set[id] = true end
+    return set
+end
+
+function Lobby:togglePin(id)
+    local set = self:pinned()
+    set[id] = not set[id] or nil
+    local list = {}
+    for _, d in ipairs(Registry.all()) do if set[d.id] then list[#list + 1] = d.id end end
+    self.host:setSetting("pinned", list)
+    self.page = 1
+end
+
+-- 置顶的游戏排最前，其余保持注册顺序
+function Lobby:sorted()
+    local set, top, rest = self:pinned(), {}, {}
+    for _, d in ipairs(Registry.all()) do
+        table.insert(set[d.id] and top or rest, d)
+    end
+    for _, d in ipairs(rest) do top[#top + 1] = d end
+    return top
+end
+
 function Lobby:render()
-    local defs = Registry.all()
+    local defs = self:sorted()
     local pages = math.max(1, math.ceil(#defs / PER_PAGE))
     self.page = math.min(self.page, pages)
     local items, last_tier = {}, nil
@@ -32,7 +57,8 @@ function Lobby:render()
             items[#items + 1] = { label = Registry.TIERS[def.tier] or def.tier }
         end
         last_tier = def.tier
-        items[#items + 1] = { title = def.title, caption = def.desc, icon = def.art, callback = function() self:play(def) end }
+        items[#items + 1] = { title = def.title, caption = def.desc, icon = def.art, callback = function() self:play(def) end,
+            pin = { on = self:pinned()[def.id], callback = function() self:togglePin(def.id) self:render() end } }
     end
     self.host:showScreen({
         title = T("游戏"),
