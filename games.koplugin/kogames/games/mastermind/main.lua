@@ -125,7 +125,7 @@ function M.new(ctx)
             title = T("猜数字"),
             status = status,
             grid = {
-                rows = MAX_TRIES, cols = 2, gap = true, ratio = 0.3,
+                rows = MAX_TRIES, cols = 2, gap = true, slots = true, ratio = 0.3,
                 cell = function(r, c)
                     local h = s.guesses[r]
                     if h then

@@ -193,7 +193,7 @@ function M.new(ctx)
             title = T("俄罗斯方块"),
             status = status,
             grid = {
-                rows = s.h, cols = s.w, gap = true,
+                rows = s.h, cols = s.w, gap = true, slots = true,
                 cell = function(r, c)
                     local i = (r - 1) * s.w + c
                     if cur[i] then return { fill = "black" } end

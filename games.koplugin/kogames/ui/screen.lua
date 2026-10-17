@@ -53,6 +53,8 @@ local TEXT_COLORS = {
     grey = Blitbuffer.Color8(0x66),
     black = Blitbuffer.COLOR_BLACK,
 }
+local SLOT = Blitbuffer.Color8(0xDC)
+local TILE = Blitbuffer.Color8(0xFA)
 local RULE = Blitbuffer.Color8(0xA0)
 
 -- 组件工具箱：有月读主题就用主题组件（标题栏、按钮、卡片），每个组件单独兜底到原生控件 ---------
@@ -221,7 +223,18 @@ function Board:paintTo(bb, x, y)
     local white = Blitbuffer.COLOR_WHITE
     local gap = g.gap and math.max(2, px(3)) or 0
     local radius = g.gap and math.floor(m * 0.12) or 0
-    bb:paintRect(x, y, self.dimen.w, self.dimen.h, g.gap and Blitbuffer.Color8(0xF2) or white)
+    if g.slots then
+        -- 有底槽的棋盘：深色底板上每格一个浅色凹槽，空格也看得见
+        bb:paintRect(x, y, self.dimen.w, self.dimen.h, white)
+        bb:paintRoundedRect(x, y, self.dimen.w, self.dimen.h, Blitbuffer.Color8(0xBE), math.floor(m * 0.2))
+        for r = 1, g.rows do
+            for c = 1, g.cols do
+                bb:paintRoundedRect(x + (c - 1) * cs + gap, y + (r - 1) * ch + gap, cs - gap * 2, ch - gap * 2, SLOT, radius)
+            end
+        end
+    else
+        bb:paintRect(x, y, self.dimen.w, self.dimen.h, g.gap and Blitbuffer.Color8(0xF2) or white)
+    end
     local go = g.style == "go"
     if go then
         local half = math.floor(cs / 2)
@@ -245,7 +258,8 @@ function Board:paintTo(bb, x, y)
             if cell then
                 if cell.fill and FILLS[cell.fill] and not go then
                     if g.gap then
-                        bb:paintRoundedRect(cx + gap, cy + gap, cs - gap * 2, ch - gap * 2, FILLS[cell.fill], radius)
+                        local fc = g.slots and cell.fill == "grey" and TILE or FILLS[cell.fill]
+                        bb:paintRoundedRect(cx + gap, cy + gap, cs - gap * 2, ch - gap * 2, fc, radius)
                     else
                         bb:paintRect(cx, cy, cs, ch, FILLS[cell.fill])
                     end

@@ -136,7 +136,7 @@ function M.new(ctx)
             title = "2048",
             status = status,
             grid = {
-                rows = N, cols = N, gap = true,
+                rows = N, cols = N, gap = true, slots = true,
                 cell = function(r, c)
                     local v = s.board[(r - 1) * N + c]
                     if v == 0 then return nil end

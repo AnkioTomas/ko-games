@@ -184,7 +184,7 @@ function M.new(ctx)
             title = T("24点"),
             status = status,
             grid = {
-                rows = 1, cols = 4, gap = true,
+                rows = 1, cols = 4, gap = true, slots = true,
                 cell = function(_, c)
                     local it = s.items[c]
                     if not it then return nil end

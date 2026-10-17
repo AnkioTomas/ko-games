@@ -101,7 +101,7 @@ function M.new(ctx)
             title = T("贪吃蛇"),
             status = status,
             grid = {
-                rows = s.h, cols = s.w, gap = true,
+                rows = s.h, cols = s.w, gap = true, slots = true,
                 cell = function(r, c)
                     local k = cells[(r - 1) * s.w + c]
                     if k == "head" then return { fill = "black", mark = "white" } end

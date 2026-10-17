@@ -137,7 +137,7 @@ function M.new(ctx)
             title = T("数字华容道"),
             status = status,
             grid = {
-                rows = n, cols = n, gap = true,
+                rows = n, cols = n, gap = true, slots = true,
                 cell = function(r, c)
                     local v = s.board[(r - 1) * n + c]
                     if v == 0 then return nil end
