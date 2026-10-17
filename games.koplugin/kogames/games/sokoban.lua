@@ -64,7 +64,7 @@ end
 
 Core.LEVELS = LEVELS
 
-local M = { id = "sokoban", title = T("推箱子"), icon = "inventory_2", tier = "A", desc = T("把箱子推到目标上"), core = Core }
+local M = { id = "sokoban", title = T("推箱子"), icon = "inventory_2", art = "box", tier = "A", desc = T("把箱子推到目标上"), core = Core }
 
 function M.new(ctx)
     local self = {}
@@ -102,11 +102,11 @@ function M.new(ctx)
                 rows = s.rows, cols = s.cols,
                 cell = function(r, c)
                     local idx = (r - 1) * s.cols + c
-                    if s.wall[idx] then return { fill = "black" } end
+                    if s.wall[idx] then return { icon = "wall", icon_scale = 1, fill = "black" } end
                     local goal = s.goal[idx]
-                    if idx == s.player then return { text = T("我"), fill = goal and "grey" or nil } end
-                    if s.boxes[idx] then return { text = T("箱"), fill = goal and "black" or "dark", color = "white" } end
-                    if goal then return { fill = "grey", text = "○", scale = 0.4 } end
+                    if idx == s.player then return { text = T("我"), icon = "player", icon_scale = 0.82, fill = goal and "grey" or nil } end
+                    if s.boxes[idx] then return { text = T("箱"), icon = goal and "box_done" or "box", icon_scale = 0.9, fill = "grey", color = "black" } end
+                    if goal then return { icon = "goal", icon_scale = 0.6, text = "○", scale = 0.4 } end
                     return nil
                 end,
             },
@@ -124,7 +124,6 @@ function M.new(ctx)
                     { text = T("上一关"), enabled = level > 1, callback = function() load(level - 1) end },
                     { text = T("下一关"), enabled = level < #LEVELS, callback = function() load(level + 1) end },
                 },
-                { { text = T("返回"), callback = function() ctx:exit() end } },
             },
         })
     end

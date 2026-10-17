@@ -204,17 +204,14 @@ end)
 test("lobby lists games and launches one", function()
     H.saved, H.view = {}, nil
     local Lobby = require("kogames.lobby").new(H.host):show()
-    local n = 0
-    for _, row in ipairs(H.view.buttons) do for _, b in ipairs(row) do if b.callback and b.text ~= "关闭" then n = n + 1 end end end
+    local n, first = 0, nil
+    for _, it in ipairs(H.view.cards.items) do
+        if it.callback then n = n + 1 first = first or it end
+    end
     assert(n >= #Registry.LIST)
-    local first
-    for _, row in ipairs(H.view.buttons) do if row[1] and row[1].callback then first = row[1] break end end
     first.callback()
     assert(H.view.title ~= "游戏")
-    -- 返回 → 大厅
-    local back
-    for _, row in ipairs(H.view.buttons) do for _, b in ipairs(row) do if b.text == "返回" then back = b end end end
-    back.callback()
+    H.view.back() -- 标题栏返回 → 大厅
     assert(H.view.title == "游戏")
     assert(Lobby)
 end)

@@ -94,7 +94,7 @@ local function copy(s)
     return t
 end
 
-local M = { id = "2048", title = "2048", icon = "grid_view", tier = "A", desc = T("滑动合并方块"), core = Core }
+local M = { id = "2048", title = "2048", icon = "grid_view", art = "icon_2048", tier = "A", desc = T("滑动合并方块"), core = Core }
 
 function M.new(ctx)
     local self = {}
@@ -124,12 +124,12 @@ function M.new(ctx)
             title = "2048",
             status = status,
             grid = {
-                rows = N, cols = N,
+                rows = N, cols = N, gap = true,
                 cell = function(r, c)
                     local v = s.board[(r - 1) * N + c]
                     if v == 0 then return nil end
                     local fill = v >= 128 and "black" or (v >= 16 and "dark" or "grey")
-                    return { text = tostring(v), fill = fill, scale = v >= 1024 and 0.3 or (v >= 128 and 0.38 or 0.5) }
+                    return { text = tostring(v), fill = fill, scale = v >= 1024 and 0.27 or (v >= 100 and 0.34 or (v >= 10 and 0.42 or 0.5)) }
                 end,
             },
             on_swipe = step,
@@ -143,7 +143,6 @@ function M.new(ctx)
                 {
                     { text = T("撤销"), enabled = prev ~= nil, callback = function() s, prev = prev, nil persist() self.render() end },
                     { text = T("新游戏"), callback = function() s, prev = Core.fresh(ctx.rng), nil persist() self.render() end },
-                    { text = T("返回"), callback = function() ctx:exit() end },
                 },
             },
         })

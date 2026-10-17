@@ -23,22 +23,16 @@ function Lobby:render()
     local defs = Registry.all()
     local pages = math.max(1, math.ceil(#defs / PER_PAGE))
     self.page = math.min(self.page, pages)
-    local buttons = {}
-    local row, last_tier = {}, nil
-    local function flush()
-        if #row > 0 then buttons[#buttons + 1] = row row = {} end
-    end
+    local items, last_tier = {}, nil
     for i = (self.page - 1) * PER_PAGE + 1, math.min(#defs, self.page * PER_PAGE) do
         local def = defs[i]
         if def.tier ~= last_tier then
-            flush()
             last_tier = def.tier
-            buttons[#buttons + 1] = { label = Registry.TIERS[def.tier] or def.tier }
+            items[#items + 1] = { label = Registry.TIERS[def.tier] or def.tier }
         end
-        row[#row + 1] = { text = def.title, callback = function() self:play(def) end }
-        if #row == 2 then flush() end
+        items[#items + 1] = { title = def.title, caption = def.desc, icon = def.art, callback = function() self:play(def) end }
     end
-    flush()
+    local buttons = {}
     if pages > 1 then
         buttons[#buttons + 1] = {
             { text = T("上一页"), enabled = self.page > 1, callback = function() self.page = self.page - 1 self:render() end },
@@ -46,10 +40,10 @@ function Lobby:render()
             { text = T("下一页"), enabled = self.page < pages, callback = function() self.page = self.page + 1 self:render() end },
         }
     end
-    buttons[#buttons + 1] = { { text = T("关闭"), callback = function() self:close() end } }
     self.host:showScreen({
         title = T("游戏"),
         status = T("选一个玩吧"),
+        cards = { cols = 2, items = items },
         buttons = buttons,
         on_close = function() Lobby.current = nil end,
     })

@@ -21,6 +21,7 @@ end
 
 function Ctx:render(view)
     view.on_close = view.on_close or function() if self.on_closed then self.on_closed() end end
+    view.back = view.back or function() self:exit() end
     self.host:showScreen(view)
 end
 

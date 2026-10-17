@@ -99,7 +99,7 @@ function Core.undo(s)
     s.winner = nil
 end
 
-local M = { id = "gomoku", title = T("五子棋"), icon = "radio_button_unchecked", tier = "A", desc = T("人机对弈"), core = Core }
+local M = { id = "gomoku", title = T("五子棋"), icon = "radio_button_unchecked", art = "stone_black", tier = "A", desc = T("人机对弈"), core = Core }
 
 function M.new(ctx)
     local self = {}
@@ -132,13 +132,14 @@ function M.new(ctx)
             title = T("五子棋"),
             status = status,
             grid = {
-                rows = N, cols = N, on_tap = tap,
+                rows = N, cols = N, on_tap = tap, style = "go",
+                stars = { { 4, 4 }, { 4, 12 }, { 8, 8 }, { 12, 4 }, { 12, 12 } },
                 cell = function(r, c)
                     local idx = (r - 1) * N + c
                     local v = s.board[idx]
                     local cell = {}
-                    if idx == last then cell.fill = "grey" end
-                    if v == HUMAN then cell.shape = "black" elseif v == AI then cell.shape = "white" end
+                    if v == HUMAN then cell.icon, cell.icon_scale = "stone_black", 0.88 elseif v == AI then cell.icon, cell.icon_scale = "stone_white", 0.88 end
+                    if idx == last and v ~= 0 and v ~= nil then cell.mark = v == HUMAN and "white" or "black" end
                     return cell
                 end,
             },
@@ -146,7 +147,6 @@ function M.new(ctx)
                 {
                     { text = T("悔棋"), enabled = #s.moves > 0, callback = function() Core.undo(s) persist() self.render() end },
                     { text = T("新局"), callback = function() s = Core.fresh() persist() self.render() end },
-                    { text = T("返回"), callback = function() ctx:exit() end },
                 },
             },
         })

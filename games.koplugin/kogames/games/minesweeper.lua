@@ -83,7 +83,7 @@ function Core.flag(s, r, c)
     s.flags = s.flags + (cell.flag and 1 or -1)
 end
 
-local M = { id = "minesweeper", title = T("扫雷"), icon = "flag", tier = "A", desc = T("经典扫雷"), core = Core, LEVELS = LEVELS }
+local M = { id = "minesweeper", title = T("扫雷"), icon = "flag", art = "mine", tier = "A", desc = T("经典扫雷"), core = Core, LEVELS = LEVELS }
 
 function M.new(ctx)
     local self = {}
@@ -159,12 +159,12 @@ function M.new(ctx)
                 cell = function(r, c)
                     local cell = s.cells[(r - 1) * s.cols + c]
                     if cell.open then
-                        if cell.mine then return { text = T("雷"), fill = "black" } end
+                        if cell.mine then return { text = T("雷"), icon = "mine", fill = "dark", icon_scale = 0.8 } end
                         return { text = cell.n > 0 and tostring(cell.n) or "", fill = "grey" }
                     end
-                    if s.over and cell.mine and not s.won then return { text = T("雷"), fill = "dark" } end
-                    if cell.flag then return { text = T("旗"), scale = 0.55 } end
-                    return { fill = "dark" }
+                    if s.over and cell.mine and not s.won then return { text = T("雷"), icon = "mine", fill = "grey", icon_scale = 0.75 } end
+                    if cell.flag then return { text = T("旗"), icon = "flag", fill = "raised", icon_scale = 0.7 } end
+                    return { fill = "raised" }
                 end,
             },
             buttons = {
@@ -173,7 +173,6 @@ function M.new(ctx)
                     { text = mode == "open" and T("翻开") or T("标记"), selected = true,
                       callback = function() mode = mode == "open" and "flag" or "open" self.render() end },
                     { text = T("重新开始"), callback = function() newGame({ name = s.level, rows = s.rows, cols = s.cols, mines = s.mines }) end },
-                    { text = T("返回"), callback = function() ctx:exit() end },
                 },
             },
         })

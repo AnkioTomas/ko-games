@@ -123,7 +123,7 @@ function Core.solved(s)
     return true
 end
 
-local M = { id = "sudoku", title = T("数独"), icon = "apps", tier = "A", desc = T("唯一解数独"), core = Core, LEVELS = LEVELS }
+local M = { id = "sudoku", title = T("数独"), icon = "apps", art = "icon_sudoku", tier = "A", desc = T("唯一解数独"), core = Core, LEVELS = LEVELS }
 
 function M.new(ctx)
     local self = {}
@@ -197,7 +197,6 @@ function M.new(ctx)
                 lv,
                 {
                     { text = T("提示"), callback = hint },
-                    { text = T("返回"), callback = function() ctx:exit() end },
                 },
             },
         })
