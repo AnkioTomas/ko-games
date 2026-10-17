@@ -340,9 +340,9 @@ local function cardGrid(k, cards, w, add)
                 k.line("caption", item.caption or "", cw - px(16), true) }
             local card = k.card(inner, cw, ch)
             if item.pin then
-                local ps = px(40)
+                local ps = px(32)
                 local pin = IconWidget:new{ name = item.pin.on and "pin_on" or "pin_off", size = ps }
-                pin.overlap_offset = { cw - ps - px(6), px(6) }
+                pin.overlap_offset = { cw - ps - px(10), px(8) }
                 card = OverlapGroup:new{ dimen = Geom:new{ w = cw, h = ch }, card, pin }
             end
             local box = tap(card, cw, ch, item.callback)
