@@ -257,7 +257,7 @@ function M.new(ctx)
     end
 
     local function cardCell(card, selected)
-        local cell = { text = Core.label(card), scale = 0.55 }
+        local cell = { text = Core.label(card), scale = 0.36 }
         if selected then
             cell.fill, cell.color = "black", "white"
         elseif red(card) then
@@ -269,7 +269,7 @@ function M.new(ctx)
     local function cell(r, c)
         if r == 1 then
             if c == 1 then
-                if #s.stock > 0 then return { text = tostring(#s.stock), fill = "dark", color = "white", scale = 0.5 } end
+                if #s.stock > 0 then return { text = tostring(#s.stock), fill = "dark", color = "white", scale = 0.36 } end
                 return { text = #s.waste > 0 and "↺" or "", color = "grey" }
             elseif c == 2 then
                 local top = s.waste[#s.waste]
@@ -277,7 +277,7 @@ function M.new(ctx)
                 return cardCell(top, sel and sel.src == "waste")
             elseif c >= 4 then
                 local su = c - 3
-                if s.found[su] == 0 then return { text = SUITS[su], color = "grey", scale = 0.55 } end
+                if s.found[su] == 0 then return { text = SUITS[su], color = "grey", scale = 0.36 } end
                 return cardCell((su - 1) * 13 + s.found[su])
             end
             return nil
@@ -287,7 +287,7 @@ function M.new(ctx)
         if #col == 0 then return k == 1 and { text = "—", color = "grey" } or nil end
         local h = hiddenCount(col)
         if h > 0 then
-            if k == 1 then return { text = "×" .. h, fill = "dark", color = "white", scale = 0.5 } end
+            if k == 1 then return { text = "×" .. h, fill = "dark", color = "white", scale = 0.36 } end
             k = k - 1
         end
         local idx = h + k
