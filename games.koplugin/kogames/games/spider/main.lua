@@ -130,7 +130,7 @@ end
 function Core.won(s) return s.done == 8 end
 
 local M = { id = "spider", title = T("蜘蛛纸牌"), icon = "icon_spider", tier = "B",
-    desc = T("十列纸牌，凑齐 K 到 A 即可消除"), help = T("目标：把十列牌里的 8 组「同花色 K 到 A」整列凑齐并移走。\n牌可以叠在点数大 1 的牌上（花色不限），但只有同花色、点数连续递减的牌才能一起搬动；空列可以放任何牌。\n点按一张牌选中它（连同下面的牌），再点目标列。\n没有可走的步时点「发牌」，每列会各发一张；有空列时不能发牌。\n「花色」按钮切换 1 / 2 / 4 种花色的难度（切换会开始新局）。可撤销多步。"), core = Core }
+    desc = T("十列纸牌，凑齐 K 到 A 即可消除"), help = T("目标：把十列牌里的 8 组「同花色 K 到 A」整列凑齐并移走。\n牌可以叠在点数大 1 的牌上（花色不限），但只有同花色、点数连续递减的牌才能一起搬动；空列可以放任何牌。\n点按一张牌选中它（连同下面的牌），再点目标列。\n没有可走的步时点「发牌」，每列会各发一张；有空列时不能发牌。\n在设置里选 1 / 2 / 4 种花色调整难度（会开始新局）。可撤销多步。"), core = Core }
 
 function M.new(ctx)
     local self = {}
@@ -221,6 +221,11 @@ function M.new(ctx)
             title = T("蜘蛛纸牌"),
             status = status,
             grid = { rows = rows, cols = NCOL, ratio = 0.8, cell = cell, on_tap = tap },
+            settings = { groups = { { label = T("难度"), options = {
+                { text = T("%d 种花色", 1), selected = s.suits == 1, callback = function() newGame(1) end },
+                { text = T("%d 种花色", 2), selected = s.suits == 2, callback = function() newGame(2) end },
+                { text = T("%d 种花色", 4), selected = s.suits == 4, callback = function() newGame(4) end },
+            } } }, reset = function() newGame() end },
             buttons = {
                 {
                     { text = T("撤销"), enabled = #s.undo > 0, callback = function()
@@ -230,9 +235,6 @@ function M.new(ctx)
                         sel = nil
                         if Core.deal(s) then persist() else ctx:notify(T("有空列时不能发牌")) end
                         self.render()
-                    end },
-                    { text = T("%d 种花色", s.suits), callback = function()
-                        newGame(s.suits == 1 and 2 or (s.suits == 2 and 4 or 1))
                     end },
                     { text = T("新游戏"), callback = function() newGame() end },
                 },

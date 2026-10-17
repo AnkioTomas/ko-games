@@ -392,7 +392,7 @@ function M.new(ctx)
     function self.render()
         local lvButtons = {}
         for i, lv in ipairs(Core.LEVELS) do
-            lvButtons[#lvButtons + 1] = { text = lv.name, selected = s.level == i, callback = function() s.level = i persist() self.render() end }
+            lvButtons[#lvButtons + 1] = { text = lv.name, selected = s.level == i, callback = function() sel = nil s = Core.fresh(i) persist() self.render() end }
         end
         ctx:render({
             title = T("中国象棋"),
@@ -422,9 +422,8 @@ function M.new(ctx)
                     return cell
                 end,
             },
+            settings = { groups = { { label = T("难度"), options = lvButtons } }, reset = function() sel = nil s = Core.fresh(s.level) persist() self.render() end },
             buttons = {
-                { label = T("难度") },
-                lvButtons,
                 {
                     { text = T("悔棋"), enabled = #s.history > 0, callback = function() sel = nil Core.undo(s) persist() self.render() end },
                     { text = T("新局"), callback = function() sel = nil s = Core.fresh(s.level) persist() self.render() end },

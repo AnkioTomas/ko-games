@@ -256,8 +256,8 @@ function M.new(ctx)
                     if i then setCell(i, 2) end
                 end,
             },
+            settings = { groups = { { label = T("大小"), options = size_row } }, reset = function() newGame(s.n) end },
             buttons = {
-                size_row,
                 {
                     { text = T("填充"), selected = mode ~= "x", callback = function() mode = "fill" persist() self.render() end },
                     { text = "×", selected = mode == "x", callback = function() mode = "x" persist() self.render() end },

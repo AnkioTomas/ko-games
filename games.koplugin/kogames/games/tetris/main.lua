@@ -205,6 +205,7 @@ function M.new(ctx)
                 if d == "west" then self.left() elseif d == "east" then self.right()
                 elseif d == "north" then self.rotate() elseif d == "south" then self.hard() end
             end,
+            settings = { groups = { { label = T("速度"), options = sp } }, reset = function() self.newGame() end },
             buttons = {
                 {
                     { text = "←", enabled = live, callback = function() self.left() end },
@@ -220,7 +221,6 @@ function M.new(ctx)
                         callback = s.over and function() self.newGame() end or function() self.toggle() end },
                     { text = T("新游戏"), callback = function() self.newGame() end },
                 },
-                { label = T("速度") }, sp,
             },
         })
     end

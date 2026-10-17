@@ -167,8 +167,8 @@ function M.new(ctx)
                     return { fill = "raised" }
                 end,
             },
+            settings = { groups = { { label = T("难度"), options = level_row } }, reset = function() newGame({ name = s.level, rows = s.rows, cols = s.cols, mines = s.mines }) end },
             buttons = {
-                level_row,
                 {
                     { text = mode == "open" and T("翻开") or T("标记"), selected = true,
                       callback = function() mode = mode == "open" and "flag" or "open" self.render() end },

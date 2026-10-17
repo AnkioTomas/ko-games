@@ -63,7 +63,7 @@ end
 
 local M = { id = "snake", title = T("贪吃蛇"), icon = "timeline", tier = "C",
     desc = T("吃苹果，别撞墙"), core = Core, INTERVALS = INTERVALS,
-    help = T("蛇会自动向前爬，滑动屏幕或点方向按钮控制转向，不能直接掉头。\n吃到苹果身体变长、得 1 分；撞到边界或自己的身体则游戏结束。\n点「开始」或任意方向开始，随时可暂停；可在下方选择速度（越大越快）。\n墨水屏每一拍都会刷新一次，建议用较慢的速度。") }
+    help = T("蛇会自动向前爬，滑动屏幕或点方向按钮控制转向，不能直接掉头。\n吃到苹果身体变长、得 1 分；撞到边界或自己的身体则游戏结束。\n点「开始」或任意方向开始，随时可暂停；可在设置中选择速度（越大越快）。\n墨水屏每一拍都会刷新一次，建议用较慢的速度。") }
 
 function M.new(ctx)
     local self = {}
@@ -110,6 +110,7 @@ function M.new(ctx)
                 end,
             },
             on_swipe = function(d) self.input(d) end,
+            settings = { groups = { { label = T("速度"), options = sp } }, reset = function() self.newGame() end },
             buttons = {
                 {
                     { text = "←", callback = function() self.input("west") end },
@@ -120,7 +121,6 @@ function M.new(ctx)
                 { { text = s.over and T("再来一局") or (paused and (s.score == 0 and #s.body == 3 and T("开始") or T("继续")) or T("暂停")),
                     callback = s.over and function() self.newGame() end or function() self.toggle() end },
                   { text = T("新游戏"), callback = function() self.newGame() end } },
-                { label = T("速度") }, sp,
             },
         })
     end

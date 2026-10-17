@@ -14,6 +14,9 @@ view = {
   on_swipe = function(dir) end,                -- dir = "north"|"south"|"east"|"west"
   buttons = { { {text=, callback=, enabled=, selected=}, ... } 一行, { label = "分组标题" } },
   help    = { title=, text= },                           -- 玩法说明：标题栏右上角 ? 按钮；help_now=true 时进入即弹出
+  settings = { groups = { { label=, options = { {text=, selected=, callback=} } } }, reset = fn },
+                                                 -- 设置弹窗：有则右上角是设置按钮（玩法在弹窗里）；点选项即应用并关闭；
+                                                 -- settings_now=true 时进入即弹出（带玩法），点「开始」调用 reset 开新局
   pager   = { page=, pages=, on_prev=fn, on_next=fn },   -- 翻页条（主题 pager，无月读时回落为按钮）
   cards   = { cols = 2, items = { {title=, caption=, callback=, pin={on=, callback=}} | {label=} } },   -- 大厅卡片
   back    = function() end,                    -- 有则标题栏左侧是返回，否则右侧是关闭
@@ -35,6 +38,7 @@ local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local Widget = require("ui/widget/widget")
+local T = require("kogames.l10n")
 local Screen = Device.screen
 
 local function px(n) return Screen:scaleBySize(n) end
@@ -434,7 +438,10 @@ function GameScreen:init()
     else
         right = { icon = "close", text = "✕", callback = function() self:onClose() end }
     end
-    if v.help then
+    if v.settings then
+        right = { icon = "settings", text = "⚙", callback = function() self:showSettings() end }
+        if v.settings_now then UIManager:nextTick(function() self:showSettings(true) end) end
+    elseif v.help then
         right = { icon = "help", text = "?", callback = function() self:showHelp() end }
         if v.help_now then UIManager:nextTick(function() self:showHelp() end) end
     end
@@ -541,6 +548,60 @@ function GameScreen:showHelp()
     if not h then return true end
     local InfoMessage = require("ui/widget/infomessage")
     UIManager:show(InfoMessage:new{ text = (h.title or "") .. "\n\n" .. h.text, width = math.floor(Screen:getWidth() * 0.86) })
+    return true
+end
+
+-- 设置弹窗：选项分组 + 玩法 + 开始/关闭；intro 为 true（首次进入）时顶部显示玩法说明
+function GameScreen:showSettings(intro)
+    local v = self.view
+    local st = v.settings
+    if not st then return true end
+    local k = kit()
+    local W = Screen:getWidth()
+    local w = math.floor(W * 0.88)
+    local pad = px(16)
+    local inner = w - 2 * pad
+    local gap = px(8)
+    local dialog
+    local function close() UIManager:close(dialog, "ui") end
+    local group = VerticalGroup:new{ align = "left" }
+    group[#group + 1] = CenterContainer:new{ dimen = Geom:new{ w = inner, h = px(40) }, k.line("title", v.title or "", inner, false, true) }
+    group[#group + 1] = VerticalSpan:new{ width = gap }
+    if intro and v.help then
+        group[#group + 1] = require("ui/widget/textboxwidget"):new{
+            text = v.help.text, face = Font:getFace("cfont", 18), width = inner, fgcolor = k.ink }
+        group[#group + 1] = VerticalSpan:new{ width = px(14) }
+    end
+    for _, g in ipairs(st.groups) do
+        if g.label then
+            group[#group + 1] = k.line("caption", g.label, inner, true)
+            group[#group + 1] = VerticalSpan:new{ width = px(6) }
+        end
+        local opts = {}
+        for _, o in ipairs(g.options) do
+            opts[#opts + 1] = { text = o.text, selected = o.selected, enabled = o.enabled,
+                callback = function() close() if o.callback then o.callback() end end }
+        end
+        group[#group + 1] = buttonRow(k, opts, inner)
+        group[#group + 1] = VerticalSpan:new{ width = gap }
+    end
+    local bottom = {}
+    if v.help and not intro then
+        bottom[#bottom + 1] = { text = T("玩法"), callback = function() close() self:showHelp() end }
+    end
+    bottom[#bottom + 1] = { text = intro and T("开始") or T("关闭"), selected = intro,
+        callback = function() close() if intro and st.reset then st.reset() end end }
+    group[#group + 1] = buttonRow(k, bottom, inner)
+    dialog = InputContainer:new{ dimen = Geom:new{ x = 0, y = 0, w = W, h = Screen:getHeight() } }
+    dialog[1] = CenterContainer:new{ dimen = dialog.dimen,
+        FrameContainer:new{ padding = pad, bordersize = px(2), radius = px(8), background = Blitbuffer.COLOR_WHITE, group } }
+    dialog.ges_events = { TapKG = { GestureRange:new{ ges = "tap", range = dialog.dimen } } }
+    function dialog:onTapKG(_, ges)
+        local box = self[1][1].dimen
+        if box and ges and ges.pos and not ges.pos:intersectWith(box) then close() end
+        return true
+    end
+    UIManager:show(dialog)
     return true
 end
 

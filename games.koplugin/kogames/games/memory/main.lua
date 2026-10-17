@@ -96,8 +96,8 @@ function M.new(ctx)
                 end,
                 on_tap = tapCell,
             },
+            settings = { groups = { { label = T("大小"), options = size_row } }, reset = function() fresh(s.rows, s.cols) end },
             buttons = {
-                size_row,
                 { { text = T("新游戏"), callback = function() fresh(s.rows, s.cols) end } },
             },
         })

@@ -217,7 +217,7 @@ test("lobby lists games and launches one", function()
 end)
 
 test("l10n: every source string has en and zh_TW translations", function()
-    local files = { "lobby", "registry", "launcher" }
+    local files = { "lobby", "registry", "launcher", "ui/screen" }
     for _, g in ipairs(Registry.LIST) do files[#files + 1] = "games/" .. g .. "/main" end
     local keys = { ["初级"] = true, ["中级"] = true, ["高级"] = true, ["简单"] = true, ["普通"] = true, ["困难"] = true }
     local function scan(path)

@@ -92,7 +92,7 @@ return function(t)
         assert(#s.tab[1] == 2 and #s.tab[2] == 0)
         H.view.buttons[1][1].callback() -- 撤销
         assert(#s.tab[1] == 1 and #s.tab[2] == 1)
-        H.view.buttons[1][4].callback() -- 新游戏
+        H.view.buttons[1][3].callback() -- 新游戏
         assert(#g.state().stock == 24)
     end)
 end

@@ -192,9 +192,9 @@ function M.new(ctx)
                     return cell
                 end,
             },
+            settings = { groups = { { label = T("难度"), options = lv } }, reset = function() newGame((function() for _, l in ipairs(LEVELS) do if l.name == s.level then return l end end return LEVELS[1] end)()) end },
             buttons = {
                 nums1, nums2,
-                lv,
                 {
                     { text = T("提示"), callback = hint },
                 },

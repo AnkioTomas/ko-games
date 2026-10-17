@@ -286,6 +286,10 @@ function M.new(ctx)
             title = T("空当接龙"),
             status = status,
             grid = { rows = rows + 1, cols = NCOL, ratio = 0.75, cell = cell, on_tap = tap },
+            settings = { groups = { { label = T("规则"), options = {
+                { text = T("移动：限制"), selected = s.limit, callback = function() s.limit = true persist() self.render() end },
+                { text = T("移动：不限"), selected = not s.limit, callback = function() s.limit = false persist() self.render() end },
+            } } }, reset = newGame },
             buttons = {
                 {
                     { text = T("撤销"), enabled = #s.undo > 0, callback = function()
@@ -294,11 +298,6 @@ function M.new(ctx)
                     { text = T("自动收牌"), callback = function()
                         sel = nil
                         if Core.autoCollect(s) > 0 then finish() persist() end
-                        self.render()
-                    end },
-                    { text = s.limit and T("移动：限制") or T("移动：不限"), callback = function()
-                        s.limit = not s.limit
-                        persist()
                         self.render()
                     end },
                     { text = T("新游戏"), callback = newGame },

@@ -23,13 +23,19 @@ function Ctx:render(view)
     view.assets = view.assets or self.def.assets
     view.on_close = view.on_close or function() if self.on_closed then self.on_closed() end end
     view.back = view.back or function() self:exit() end
+    local help_pending
     if self.def.help and not view.help then
         view.help = { title = self.def.title, text = self.def.help }
         local key = "help_seen_" .. self.id
         if not self.host:getSetting(key) then
             self.host:setSetting(key, true)
-            view.help_now = true -- 第一次进入自动弹出玩法
+            help_pending = true -- 第一次进入自动弹出玩法
         end
+        view.help_now = help_pending
+    end
+    -- 有设置的游戏：首次进入弹出设置弹窗（含玩法），确认后开新局
+    if view.settings and help_pending then
+        view.help_now, view.settings_now = nil, true
     end
     self.host:showScreen(view)
 end

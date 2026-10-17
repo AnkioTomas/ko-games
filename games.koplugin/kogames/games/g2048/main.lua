@@ -99,7 +99,7 @@ local function copy(s)
     return t
 end
 
-local M = { id = "2048", title = "2048", icon = "grid_view", tier = "A", desc = T("滑动合并方块"), help = T("在棋盘上滑动手指，所有方块朝该方向移动；两个相同数字的方块相撞会合并成它们的和。\n每次移动后会随机出现一个新方块。合成 2048 即达成目标，棋盘填满且无法移动则游戏结束。\n可在上方选择 3×3 到 6×6 的棋盘，每种大小单独记录最高分。"), core = Core }
+local M = { id = "2048", title = "2048", icon = "grid_view", tier = "A", desc = T("滑动合并方块"), help = T("在棋盘上滑动手指，所有方块朝该方向移动；两个相同数字的方块相撞会合并成它们的和。\n每次移动后会随机出现一个新方块。合成 2048 即达成目标，棋盘填满且无法移动则游戏结束。\n可在设置中选择 3×3 到 6×6 的棋盘，每种大小单独记录最高分。"), core = Core }
 
 function M.new(ctx)
     local self = {}
@@ -145,8 +145,8 @@ function M.new(ctx)
                 end,
             },
             on_swipe = step,
+            settings = { groups = { { label = T("大小"), options = size_row } }, reset = function() s, prev = Core.fresh(ctx.rng, s.n), nil persist() self.render() end },
             buttons = {
-                size_row,
                 {
                     { text = "←", callback = function() step("west") end },
                     { text = "↑", callback = function() step("north") end },

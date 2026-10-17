@@ -68,7 +68,7 @@ return function(t)
         assert(s.cells[1] == id(2, 6) and #s.tab[1] == 1)
         H.view.buttons[1][1].callback()
         assert(s.cells[1] == 0 and #s.tab[1] == 2)
-        H.view.buttons[1][4].callback()
+        H.view.buttons[1][3].callback()
         assert(#g.state().tab[1] == 7)
     end)
 end

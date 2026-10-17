@@ -146,8 +146,8 @@ function M.new(ctx)
                 on_tap = tapCell,
             },
             on_swipe = swipe,
+            settings = { groups = { { label = T("大小"), options = size_row } }, reset = function() fresh(s.n) end },
             buttons = {
-                size_row,
                 {
                     { text = T("撤销"), enabled = #undo > 0 and not s.done, callback = function()
                         s.board = table.remove(undo)

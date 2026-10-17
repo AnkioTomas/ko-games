@@ -128,8 +128,8 @@ function M.new(ctx)
                 end,
                 on_tap = tapCell,
             },
+            settings = { groups = { { label = T("大小"), options = size_row } }, reset = function() fresh(s.n) end },
             buttons = {
-                size_row,
                 {
                     { text = T("撤销"), enabled = #undo > 0 and not s.done, callback = function()
                         s.pegs = table.remove(undo)

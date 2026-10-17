@@ -69,7 +69,7 @@ return function(t)
         assert(#s.tab[1] == 2 and #s.tab[2] == 0 and H.saved.spider.state.moves == 1)
         H.view.buttons[1][2].callback() -- deal blocked by empty column
         assert(#s.stock == 50)
-        H.view.buttons[1][3].callback() -- 2 suits, new game
+        H.view.settings.groups[1].options[2].callback() -- 2 suits, new game
         assert(g.state().suits == 2 and #g.state().stock == 50 and rows >= 8)
     end)
 end

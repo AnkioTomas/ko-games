@@ -509,11 +509,10 @@ function M.new(ctx)
             { text = T("悔棋"), enabled = #s.history > 0, callback = function() Core.undo(s) sel = nil persist() self.render() end },
             { text = T("新局"), callback = function() s = Core.newState(s.level) sel = nil persist() self.render() end },
         }
-        buttons[#buttons + 1] = {
-            { text = T("简单"), selected = s.level == 1, callback = function() s.level = 1 persist() self.render() end },
-            { text = T("普通"), selected = s.level == 2, callback = function() s.level = 2 persist() self.render() end },
+        local levels = {
+            { text = T("简单"), selected = s.level == 1, callback = function() s = Core.newState(1) sel = nil persist() self.render() end },
+            { text = T("普通"), selected = s.level == 2, callback = function() s = Core.newState(2) sel = nil persist() self.render() end },
         }
-
         ctx:render({
             title = T("国际象棋"),
             status = status,
@@ -533,6 +532,7 @@ function M.new(ctx)
                     return cell
                 end,
             },
+            settings = { groups = { { label = T("难度"), options = levels } }, reset = function() s = Core.newState(s.level) sel = nil persist() self.render() end },
             buttons = buttons,
         })
     end
