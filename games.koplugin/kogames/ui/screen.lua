@@ -90,8 +90,7 @@ local function kit()
             HorizontalGroup:new{ align = "center", side(left),
                 CenterContainer:new{ dimen = Geom:new{ w = w - slot * 2, h = slot },
                     TextWidget:new{ text = title or "", face = face("title"), bold = true, max_width = w - slot * 2 } },
-                side(right) },
-            require("ui/widget/linewidget"):new{ dimen = Geom:new{ w = w, h = px(1) }, background = RULE } }
+                side(right) } }
     end
     function native.card(child, w, h)
         return FrameContainer:new{ width = w, height = h, padding = 0, bordersize = px(1), radius = px(8), color = RULE,
@@ -125,7 +124,7 @@ local function kit()
             variant = opts.selected and "primary" or "normal", enabled = opts.enabled ~= false and cb ~= nil }
     end)
     guarded("title", function(w, title, left, right)
-        return require("ui.themes.widgets.titlebar").widget{ width = w, title = title or "",
+        return require("ui.themes.widgets.titlebar").widget{ width = w, title = title or "", divider = false,
             left_icon = left and left.icon, left_callback = left and left.callback,
             right_icon = right and right.icon, right_callback = right and right.callback }
     end)
