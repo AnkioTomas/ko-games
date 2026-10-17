@@ -90,9 +90,9 @@ return function(t)
         assert(H.view.grid.cell(2, 2).fill == "black")
         H.view.grid.on_tap(2, 1)
         assert(#s.tab[1] == 2 and #s.tab[2] == 0)
-        H.view.buttons[1][1].callback() -- 撤销
+        H.view.settings.actions[1].callback() -- 撤销
         assert(#s.tab[1] == 1 and #s.tab[2] == 1)
-        H.view.buttons[1][3].callback() -- 新游戏
+        H.view.settings.actions[2].callback() -- 新游戏
         assert(#g.state().stock == 24)
     end)
 end

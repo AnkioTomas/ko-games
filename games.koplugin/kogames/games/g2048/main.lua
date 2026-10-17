@@ -154,8 +154,8 @@ function M.new(ctx)
                     { text = "→", callback = function() step("east") end },
                 },
                 {
-                    { text = T("撤销"), enabled = prev ~= nil, callback = function() s, prev = prev, nil persist() self.render() end },
-                    { text = T("新游戏"), callback = function() s, prev = Core.fresh(ctx.rng, s.n), nil persist() self.render() end },
+                    { menu = true, text = T("撤销"), enabled = prev ~= nil, callback = function() s, prev = prev, nil persist() self.render() end },
+                    { menu = true, text = T("新游戏"), callback = function() s, prev = Core.fresh(ctx.rng, s.n), nil persist() self.render() end },
                 },
             },
         })

@@ -37,6 +37,17 @@ function Ctx:render(view)
     if view.settings and help_pending then
         view.help_now, view.settings_now = nil, true
     end
+    if view.settings and view.buttons then
+        -- 标了 menu 的按钮（撤销、新游戏等）移进设置弹窗
+        local rows, actions = {}, {}
+        for _, row in ipairs(view.buttons) do
+            local keep = {}
+            for _, b in ipairs(row) do table.insert(b.menu and actions or keep, b) end
+            if #keep > 0 or row.label then rows[#rows + 1] = #keep > 0 and keep or row end
+        end
+        view.buttons = rows
+        view.settings.actions = actions
+    end
     self.host:showScreen(view)
 end
 

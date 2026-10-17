@@ -14,7 +14,7 @@ view = {
   on_swipe = function(dir) end,                -- dir = "north"|"south"|"east"|"west"
   buttons = { { {text=, callback=, enabled=, selected=}, ... } 一行, { label = "分组标题" } },
   help    = { title=, text= },                           -- 玩法说明：标题栏右上角 ? 按钮；help_now=true 时进入即弹出
-  settings = { groups = { { label=, options = { {text=, selected=, callback=} } } }, reset = fn },
+  settings = { groups = { { label=, options = { {text=, selected=, callback=} } } }, reset = fn, actions = { {text=, enabled=, callback=} } },
                                                  -- 设置弹窗：有则右上角是设置按钮（玩法在弹窗里）；点选项即应用并关闭；
                                                  -- settings_now=true 时进入即弹出（带玩法），点「开始」调用 reset 开新局
   pager   = { page=, pages=, on_prev=fn, on_next=fn },   -- 翻页条（主题 pager，无月读时回落为按钮）
@@ -583,6 +583,15 @@ function GameScreen:showSettings(intro)
                 callback = function() close() if o.callback then o.callback() end end }
         end
         group[#group + 1] = buttonRow(k, opts, inner)
+        group[#group + 1] = VerticalSpan:new{ width = gap }
+    end
+    if st.actions and #st.actions > 0 and not intro then
+        local acts = {}
+        for _, a in ipairs(st.actions) do
+            acts[#acts + 1] = { text = a.text, enabled = a.enabled,
+                callback = function() close() if a.callback then a.callback() end end }
+        end
+        group[#group + 1] = buttonRow(k, acts, inner)
         group[#group + 1] = VerticalSpan:new{ width = gap }
     end
     local bottom = {}

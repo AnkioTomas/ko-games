@@ -98,7 +98,7 @@ function M.new(ctx)
             },
             settings = { groups = { { label = T("大小"), options = size_row } }, reset = function() fresh(s.rows, s.cols) end },
             buttons = {
-                { { text = T("新游戏"), callback = function() fresh(s.rows, s.cols) end } },
+                { { menu = true, text = T("新游戏"), callback = function() fresh(s.rows, s.cols) end } },
             },
         })
     end

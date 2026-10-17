@@ -506,8 +506,8 @@ function M.new(ctx)
             buttons[#buttons + 1] = row
         end
         buttons[#buttons + 1] = {
-            { text = T("悔棋"), enabled = #s.history > 0, callback = function() Core.undo(s) sel = nil persist() self.render() end },
-            { text = T("新局"), callback = function() s = Core.newState(s.level) sel = nil persist() self.render() end },
+            { menu = true, text = T("悔棋"), enabled = #s.history > 0, callback = function() Core.undo(s) sel = nil persist() self.render() end },
+            { menu = true, text = T("新局"), callback = function() s = Core.newState(s.level) sel = nil persist() self.render() end },
         }
         local levels = {
             { text = T("简单"), selected = s.level == 1, callback = function() s = Core.newState(1) sel = nil persist() self.render() end },

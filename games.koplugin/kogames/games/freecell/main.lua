@@ -292,7 +292,7 @@ function M.new(ctx)
             } } }, reset = newGame },
             buttons = {
                 {
-                    { text = T("撤销"), enabled = #s.undo > 0, callback = function()
+                    { menu = true, text = T("撤销"), enabled = #s.undo > 0, callback = function()
                         if Core.undo(s) then sel = nil persist() self.render() end
                     end },
                     { text = T("自动收牌"), callback = function()
@@ -300,7 +300,7 @@ function M.new(ctx)
                         if Core.autoCollect(s) > 0 then finish() persist() end
                         self.render()
                     end },
-                    { text = T("新游戏"), callback = newGame },
+                    { menu = true, text = T("新游戏"), callback = newGame },
                 },
             },
         })

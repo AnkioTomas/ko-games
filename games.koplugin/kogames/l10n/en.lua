@@ -230,4 +230,6 @@ return {
     ["大小"] = "Size",
     ["规则"] = "Rules",
     ["玩法"] = "How to play",
+    ["全部游戏"] = "All games",
+    ["更多"] = "More",
 }

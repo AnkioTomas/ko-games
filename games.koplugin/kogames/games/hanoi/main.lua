@@ -131,7 +131,7 @@ function M.new(ctx)
             settings = { groups = { { label = T("大小"), options = size_row } }, reset = function() fresh(s.n) end },
             buttons = {
                 {
-                    { text = T("撤销"), enabled = #undo > 0 and not s.done, callback = function()
+                    { menu = true, text = T("撤销"), enabled = #undo > 0 and not s.done, callback = function()
                         s.pegs = table.remove(undo)
                         s.moves = s.moves - 1
                         sel = nil
@@ -146,7 +146,7 @@ function M.new(ctx)
                             self.render()
                         end
                     end },
-                    { text = T("新游戏"), callback = function() fresh(s.n) end },
+                    { menu = true, text = T("新游戏"), callback = function() fresh(s.n) end },
                 },
             },
         })

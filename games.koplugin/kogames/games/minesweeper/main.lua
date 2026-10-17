@@ -172,7 +172,7 @@ function M.new(ctx)
                 {
                     { text = mode == "open" and T("翻开") or T("标记"), selected = true,
                       callback = function() mode = mode == "open" and "flag" or "open" self.render() end },
-                    { text = T("重新开始"), callback = function() newGame({ name = s.level, rows = s.rows, cols = s.cols, mines = s.mines }) end },
+                    { menu = true, text = T("重新开始"), callback = function() newGame({ name = s.level, rows = s.rows, cols = s.cols, mines = s.mines }) end },
                 },
             },
         })

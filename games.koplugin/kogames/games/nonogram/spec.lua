@@ -68,7 +68,7 @@ return function(t)
         assert(s.user[2] == 2)
         H.view.grid.on_tap(mc + 1, mr + 2)
         assert(s.user[2] == 0)
-        H.view.buttons[2][1].callback()
+        H.view.settings.actions[1].callback()
         assert(s.user[2] == 2)
     end)
 end

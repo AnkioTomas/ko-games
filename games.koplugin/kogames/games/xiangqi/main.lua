@@ -425,8 +425,8 @@ function M.new(ctx)
             settings = { groups = { { label = T("难度"), options = lvButtons } }, reset = function() sel = nil s = Core.fresh(s.level) persist() self.render() end },
             buttons = {
                 {
-                    { text = T("悔棋"), enabled = #s.history > 0, callback = function() sel = nil Core.undo(s) persist() self.render() end },
-                    { text = T("新局"), callback = function() sel = nil s = Core.fresh(s.level) persist() self.render() end },
+                    { menu = true, text = T("悔棋"), enabled = #s.history > 0, callback = function() sel = nil Core.undo(s) persist() self.render() end },
+                    { menu = true, text = T("新局"), callback = function() sel = nil s = Core.fresh(s.level) persist() self.render() end },
                 },
             },
         })

@@ -263,13 +263,13 @@ function M.new(ctx)
                     { text = "×", selected = mode == "x", callback = function() mode = "x" persist() self.render() end },
                 },
                 {
-                    { text = T("撤销"), enabled = #undo > 0 and not s.done, callback = function()
+                    { menu = true, text = T("撤销"), enabled = #undo > 0 and not s.done, callback = function()
                         local u = table.remove(undo)
                         s.user[u[1]] = u[2]
                         persist()
                         self.render()
                     end },
-                    { text = T("新游戏"), callback = function() newGame(s.n) end },
+                    { menu = true, text = T("新游戏"), callback = function() newGame(s.n) end },
                 },
             },
         })

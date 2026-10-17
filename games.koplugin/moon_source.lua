@@ -25,10 +25,27 @@ local widget = {
         if not ok then Button = require("ui/widget/button") end
         local CenterContainer = require("ui/widget/container/centercontainer")
         local Geom = require("ui/geometry")
-        return CenterContainer:new{
-            dimen = Geom:new{ w = w, h = h },
-            Button:new{ text = _("玩两把"), width = math.floor(w * 0.8), callback = openLobby },
-        }
+        -- 有置顶游戏时每个置顶游戏一个按钮（最多 3 个）加「更多」；没有则只放「玩两把」
+        local L = require("kogames.launcher")
+        local ok2, pinned = pcall(L.pinned, "moon")
+        local btns = {}
+        if ok2 then
+            for i = 1, math.min(#pinned, 3) do
+                local def = pinned[i]
+                btns[#btns + 1] = { text = def.title, callback = function() pcall(L.play, "moon", def.id) end }
+            end
+        end
+        if #btns > 0 then btns[#btns + 1] = { text = _("更多"), callback = openLobby } else btns[1] = { text = _("玩两把"), callback = openLobby } end
+        local HorizontalGroup = require("ui/widget/horizontalgroup")
+        local HorizontalSpan = require("ui/widget/horizontalspan")
+        local gap = 8
+        local bw = math.floor((w * 0.9 - gap * (#btns - 1)) / #btns)
+        local row = HorizontalGroup:new{}
+        for i, b in ipairs(btns) do
+            if i > 1 then row[#row + 1] = HorizontalSpan:new{ width = gap } end
+            row[#row + 1] = Button:new{ text = b.text, width = bw, callback = b.callback }
+        end
+        return CenterContainer:new{ dimen = Geom:new{ w = w, h = h }, row }
     end,
 }
 

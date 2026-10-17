@@ -45,7 +45,7 @@ return function(t)
         local s = g.state()
         s.n, s.board, s.moves, s.done = 3, { 1, 2, 3, 4, 5, 6, 7, 0, 8 }, 0, nil
         g.render()
-        assert(H.view.buttons[1][1].enabled == false)
+        assert(H.view.settings.actions[1].enabled == false)
         H.view.grid.on_tap(3, 3)
         assert(s.done and C.solved(s) and s.moves == 1)
         assert(H.saved["stats_fifteen"] and H.saved["stats_fifteen"].best3 == 1)

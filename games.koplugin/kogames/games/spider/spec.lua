@@ -67,7 +67,7 @@ return function(t)
         assert(H.view.grid.cell(1, 2).fill == "black")
         H.view.grid.on_tap(1, 1)
         assert(#s.tab[1] == 2 and #s.tab[2] == 0 and H.saved.spider.state.moves == 1)
-        H.view.buttons[1][2].callback() -- deal blocked by empty column
+        H.view.buttons[1][1].callback() -- deal blocked by empty column
         assert(#s.stock == 50)
         H.view.settings.groups[1].options[2].callback() -- 2 suits, new game
         assert(g.state().suits == 2 and #g.state().stock == 50 and rows >= 8)

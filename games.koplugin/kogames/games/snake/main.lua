@@ -120,7 +120,7 @@ function M.new(ctx)
                 },
                 { { text = s.over and T("再来一局") or (paused and (s.score == 0 and #s.body == 3 and T("开始") or T("继续")) or T("暂停")),
                     callback = s.over and function() self.newGame() end or function() self.toggle() end },
-                  { text = T("新游戏"), callback = function() self.newGame() end } },
+                  { menu = true, text = T("新游戏"), callback = function() self.newGame() end } },
             },
         })
     end

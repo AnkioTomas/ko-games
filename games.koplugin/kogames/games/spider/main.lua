@@ -228,7 +228,7 @@ function M.new(ctx)
             } } }, reset = function() newGame() end },
             buttons = {
                 {
-                    { text = T("撤销"), enabled = #s.undo > 0, callback = function()
+                    { menu = true, text = T("撤销"), enabled = #s.undo > 0, callback = function()
                         if Core.undo(s) then sel = nil persist() self.render() end
                     end },
                     { text = T("发牌"), enabled = #s.stock > 0, callback = function()
@@ -236,7 +236,7 @@ function M.new(ctx)
                         if Core.deal(s) then persist() else ctx:notify(T("有空列时不能发牌")) end
                         self.render()
                     end },
-                    { text = T("新游戏"), callback = function() newGame() end },
+                    { menu = true, text = T("新游戏"), callback = function() newGame() end },
                 },
             },
         })

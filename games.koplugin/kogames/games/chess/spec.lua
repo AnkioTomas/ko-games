@@ -87,7 +87,7 @@ return function(t)
         H.view.grid.on_tap(5, 5) -- e4
         local st = H.saved.chess.state
         assert(st.pos.b[37] == 1 and st.pos.turn == 1 and #st.history == 1 and st.last)
-        H.view.buttons[#H.view.buttons][1].callback()
+        H.view.settings.actions[1].callback()
         assert(H.saved.chess.state.pos.b[53] == 1 and #H.saved.chess.state.history == 0)
     end)
 

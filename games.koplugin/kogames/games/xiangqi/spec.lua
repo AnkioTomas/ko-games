@@ -79,7 +79,7 @@ return function(t)
         H.view.grid.on_tap(8, 3)
         local st = H.saved.xiangqi.state
         assert(#st.history == 1 and st.board[at(8, 3)] == 4 and st.turn == 1)
-        H.view.buttons[1][1].callback()
+        H.view.settings.actions[1].callback()
         st = H.saved.xiangqi.state
         assert(st.board[at(10, 2)] == 4 and st.turn == 1 and #st.history == 0)
     end)

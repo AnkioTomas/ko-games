@@ -23,7 +23,14 @@ function Games:addToMainMenu(menu_items)
     menu_items.kogames = {
         text = _("游戏"),
         sorting_hint = "tools",
-        callback = function() require("kogames.launcher").open("koreader") end,
+        sub_item_table_func = function()
+            local L = require("kogames.launcher")
+            local items = { { text = _("全部游戏"), callback = function() L.open("koreader") end } }
+            for _i, def in ipairs(L.pinned("koreader")) do
+                items[#items + 1] = { text = def.title, callback = function() L.play("koreader", def.id) end }
+            end
+            return items
+        end,
     }
 end
 
