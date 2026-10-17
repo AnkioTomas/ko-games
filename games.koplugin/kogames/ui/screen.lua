@@ -161,7 +161,7 @@ local function loadIcon(name, size, dir)
     local hit = icon_cache[key]
     if hit == nil then
         local ok, bb = pcall(function()
-            local path = name:sub(1, 1) == "/" and name
+            local path = name:find("/", 1, true) and name -- 带目录的是完整路径（可能是相对路径）
                 or (dir and exists(dir .. name .. ".svg") and dir .. name .. ".svg")
                 or ASSETS .. name .. ".svg"
             return require("ui/renderimage"):renderSVGImageFile(path, size, size)
