@@ -44,7 +44,7 @@ test("rng is reproducible and in range", function()
 end)
 
 test("2048 slide/merge", function()
-    local C = require("kogames.games.g2048").core
+    local C = require("kogames.games.g2048.main").core
     local s = { board = { 2, 2, 2, 2, 0, 0, 0, 0, 2, 0, 2, 4, 0, 0, 0, 0 }, score = 0 }
     assert(C.move(s, "west"))
     assert(s.board[1] == 4 and s.board[2] == 4 and s.board[3] == 0)
@@ -67,7 +67,7 @@ test("2048 session saves, swipes, ends", function()
 end)
 
 test("minesweeper first tap is safe and flood fills", function()
-    local M = require("kogames.games.minesweeper")
+    local M = require("kogames.games.minesweeper.main")
     local C = M.core
     for seed = 1, 20 do
         local s = C.fresh(M.LEVELS[1])
@@ -82,7 +82,7 @@ test("minesweeper first tap is safe and flood fills", function()
 end)
 
 test("minesweeper can be won by opening all safe cells", function()
-    local M = require("kogames.games.minesweeper")
+    local M = require("kogames.games.minesweeper.main")
     local C = M.core
     local s = C.fresh(M.LEVELS[1])
     local rng = Rng.new(11)
@@ -103,7 +103,7 @@ test("minesweeper session", function()
 end)
 
 test("sudoku generates unique-solution puzzles", function()
-    local C = require("kogames.games.sudoku").core
+    local C = require("kogames.games.sudoku.main").core
     for seed = 1, 3 do
         local puzzle, sol = C.generate(36, Rng.new(seed))
         assert(C.countSolutions(puzzle, 2) == 1, "not unique")
@@ -137,7 +137,7 @@ test("sudoku session: input, conflict, hint, win", function()
 end)
 
 test("gomoku win detection, ai blocks, undo", function()
-    local C = require("kogames.games.gomoku").core
+    local C = require("kogames.games.gomoku.main").core
     local s = C.fresh()
     for c = 1, 5 do C.place(s, 8, c, 1) end
     assert(s.winner == 1)
@@ -158,7 +158,7 @@ test("gomoku session: tap triggers ai reply", function()
 end)
 
 test("sokoban levels all solvable (BFS)", function()
-    local C = require("kogames.games.sokoban").core
+    local C = require("kogames.games.sokoban.main").core
     local dirs = { "north", "south", "west", "east" }
     for n, rows in ipairs(C.LEVELS) do
         local s = C.parse(rows)
@@ -218,7 +218,7 @@ end)
 
 test("l10n: every source string has en and zh_TW translations", function()
     local files = { "lobby", "registry", "launcher" }
-    for _, g in ipairs(Registry.LIST) do files[#files + 1] = "games/" .. g end
+    for _, g in ipairs(Registry.LIST) do files[#files + 1] = "games/" .. g .. "/main" end
     local keys = { ["初级"] = true, ["中级"] = true, ["高级"] = true, ["简单"] = true, ["普通"] = true, ["困难"] = true }
     local function scan(path)
         local f = assert(io.open(path))
@@ -254,8 +254,8 @@ test("l10n: language selection and formatting", function()
     assert(L("撤销") == "撤销" and L("新纪录：%d", 5) == "新纪录：5")
 end)
 
--- spec/cases/*.lua：每个文件 return function(t)，t = { test, launch, H, Rng }，放各游戏自己的用例
-local ls = io.popen("ls spec/cases/*.lua 2>/dev/null")
+-- spec/cases/*.lua 与 games/<id>/spec.lua：每个文件 return function(t)，t = { test, launch, H, Rng }，放各游戏自己的用例
+local ls = io.popen("ls spec/cases/*.lua games.koplugin/kogames/games/*/spec.lua 2>/dev/null")
 for path in ls:lines() do
     dofile(path)({ test = test, launch = launch, H = H, Rng = Rng })
 end

@@ -20,6 +20,7 @@ function Ctx.new(host, def, exit)
 end
 
 function Ctx:render(view)
+    view.assets = view.assets or self.def.assets
     view.on_close = view.on_close or function() if self.on_closed then self.on_closed() end end
     view.back = view.back or function() self:exit() end
     if self.def.help and not view.help then

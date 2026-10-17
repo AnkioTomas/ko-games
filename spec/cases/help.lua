@@ -4,9 +4,9 @@ return function(t)
         local Registry = require("kogames.registry")
         for _, def in ipairs(Registry.all()) do assert(def.help, def.id .. " has no help") end
         H.settings, H.saved = {}, {}
-        Registry.launch(H.host, require("kogames.games.gomoku"), nil)
+        Registry.launch(H.host, require("kogames.games.gomoku.main"), nil)
         assert(H.view.help and H.view.help_now)
-        Registry.launch(H.host, require("kogames.games.gomoku"), nil)
+        Registry.launch(H.host, require("kogames.games.gomoku.main"), nil)
         assert(H.view.help and not H.view.help_now)
     end)
 end

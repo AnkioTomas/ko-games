@@ -1,27 +1,28 @@
 --[[--
-游戏注册表。新增游戏 = games/<id>/init.lua + 在 LIST 里加一行。
+游戏注册表。新增游戏 = games/<id>/main.lua（素材放 games/<id>/assets/，icon.svg 为大厅图标） + 在 LIST 里加一行。
 游戏模块：{ id, title, icon, tier, desc, new = function(ctx) -> { start = fn, stop? = fn } }
 tier：A 纯静态点按（墨水屏最佳）/ B 回合慢节奏 / C 实时（需实测刷新率）。
 加载失败的游戏在大厅隐藏，不拖垮其它游戏。
 --]]
 local T = require("kogames.l10n")
 local Registry = {}
+local ROOT = (debug.getinfo(1, "S").source:match("^@(.*/)[^/]*$") or "./")
 
-Registry.LIST = { "g2048", "minesweeper", "sudoku", "gomoku", "sokoban",
-    "connect4", "reversi", "fifteen", "nonogram", "klondike",
-    "twentyfour", "mastermind", "hanoi", "memory" }
-
-Registry.TIERS = {
-    A = T("静态益智 · 墨水屏最佳"),
-    B = T("回合制 · 慢节奏"),
-    C = T("实时 · 需实测刷新"),
-}
+Registry.LIST = { "g2048", "minesweeper", "sudoku", "gomoku", "xiangqi",
+    "chess", "go9", "checkers", "sokoban", "klondike",
+    "freecell", "spider", "tetris", "snake", "connect4",
+    "reversi", "fifteen", "twentyfour", "memory", "nonogram",
+    "mastermind", "hanoi" }
 
 function Registry.all()
     local out = {}
     for _, name in ipairs(Registry.LIST) do
-        local ok, def = pcall(require, "kogames.games." .. name)
-        if ok and type(def) == "table" and def.id then out[#out + 1] = def end
+        local ok, def = pcall(require, "kogames.games." .. name .. ".main")
+        if ok and type(def) == "table" and def.id then
+            def.assets = ROOT .. "games/" .. name .. "/assets/"
+            def.art = def.assets .. "icon.svg"
+            out[#out + 1] = def
+        end
     end
     return out
 end

@@ -146,12 +146,21 @@ end
 -- SVG 素材：按 名称|边长 缓存渲染结果；渲染失败返回 nil，调用方退回文字
 local ASSETS = (debug.getinfo(1, "S").source:match("^@(.*)/kogames/ui/screen%.lua$") or ".") .. "/assets/"
 local icon_cache = {}
-local function loadIcon(name, size)
-    local key = name .. "|" .. size
+local function exists(path)
+    local f = io.open(path, "rb")
+    if f then f:close() return true end
+end
+
+-- 素材查找：绝对路径 > 游戏自己的 assets 目录 > 框架共用 assets
+local function loadIcon(name, size, dir)
+    local key = (dir or "") .. name .. "|" .. size
     local hit = icon_cache[key]
     if hit == nil then
         local ok, bb = pcall(function()
-            return require("ui/renderimage"):renderSVGImageFile(ASSETS .. name .. ".svg", size, size)
+            local path = name:sub(1, 1) == "/" and name
+                or (dir and exists(dir .. name .. ".svg") and dir .. name .. ".svg")
+                or ASSETS .. name .. ".svg"
+            return require("ui/renderimage"):renderSVGImageFile(path, size, size)
         end)
         hit = ok and bb or false
         icon_cache[key] = hit
@@ -159,8 +168,8 @@ local function loadIcon(name, size)
     return hit or nil
 end
 
-local function paintIcon(bb, name, x, y, size)
-    local img = loadIcon(name, size)
+local function paintIcon(bb, name, x, y, size, dir)
+    local img = loadIcon(name, size, dir)
     if not img then return false end
     bb:alphablitFrom(img, x + math.floor((size - img:getWidth()) / 2), y + math.floor((size - img:getHeight()) / 2),
         0, 0, img:getWidth(), img:getHeight())
@@ -173,7 +182,7 @@ local IconWidget = Widget:extend{ name = nil, size = 48 }
 function IconWidget:init() self.dimen = Geom:new{ w = self.size, h = self.size } end
 function IconWidget:paintTo(bb, x, y)
     self.dimen.x, self.dimen.y = x, y
-    paintIcon(bb, self.name, x, y, self.size)
+    paintIcon(bb, self.name, x, y, self.size, self.assets)
 end
 
 -- 棋盘 ------------------------------------------------------------------
@@ -258,11 +267,19 @@ function Board:paintTo(bb, x, y)
                     local tsz = math.max(8, math.floor(ch * (cell.scale or 0.4)))
                     local tw = self:text(cell.rank, tsz, cell.color or "black")
                     local sz = tw:getSize()
-                    tw:paintTo(bb, cx + math.floor((cs - sz.w) / 2), cy + math.floor(ch * 0.04))
-                    paintIcon(bb, cell.icon, cx + math.floor((cs - isz) / 2), cy + ch - isz - math.floor(ch * 0.06), isz)
+                    if ch < cs then
+                        -- 扁格子：点数在左、花色在右并排
+                        local total = sz.w + isz + math.floor(cs * 0.04)
+                        local x0 = cx + math.floor((cs - total) / 2)
+                        tw:paintTo(bb, x0, cy + math.floor((ch - sz.h) / 2))
+                        paintIcon(bb, cell.icon, x0 + sz.w + math.floor(cs * 0.04), cy + math.floor((ch - isz) / 2), isz, self.assets)
+                    else
+                        tw:paintTo(bb, cx + math.floor((cs - sz.w) / 2), cy + math.floor(ch * 0.04))
+                        paintIcon(bb, cell.icon, cx + math.floor((cs - isz) / 2), cy + ch - isz - math.floor(ch * 0.06), isz, self.assets)
+                    end
                 elseif cell.icon then
                     local isz = math.floor(m * (cell.icon_scale or 0.8))
-                    if not paintIcon(bb, cell.icon, cx + math.floor((cs - isz) / 2), cy + math.floor((ch - isz) / 2), isz)
+                    if not paintIcon(bb, cell.icon, cx + math.floor((cs - isz) / 2), cy + math.floor((ch - isz) / 2), isz, self.assets)
                         and cell.text then
                         cell.text_fallback = true
                     end
@@ -271,7 +288,7 @@ function Board:paintTo(bb, x, y)
                     local mid, rad = math.floor(cs / 2), math.floor(cs * 0.4)
                     bb:paintCircle(cx + mid, cy + mid, rad, ink)
                     if cell.shape == "white" then
-                        bb:paintCircle(cx + mid, cy + mid, rad - math.max(2, px(2)), white)
+                        bb:paintCircle(cx + mid, cy + mid, rad - math.max(2, px(2), math.floor(rad * 0.1)), white)
                     end
                 end
                 if cell.mark then
@@ -437,7 +454,7 @@ function GameScreen:init()
     if v.grid then
         local avail = H - used - btn_total - 2 * margin - gap * 2
         local size = math.max(px(100), math.min(inner, avail))
-        self.board = Board:new{ grid = v.grid, size = size,
+        self.board = Board:new{ grid = v.grid, size = size, assets = v.assets,
             width = v.grid.ratio and inner or nil, height = v.grid.ratio and math.max(px(100), avail) or nil }
         add(CenterContainer:new{ dimen = Geom:new{ w = inner, h = self.board.dimen.h }, self.board }, self.board.dimen.h)
         add(VerticalSpan:new{ width = px(14) }, px(14))

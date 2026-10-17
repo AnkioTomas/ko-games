@@ -48,15 +48,9 @@ function Lobby:render()
     local defs = self:sorted()
     local pages = math.max(1, math.ceil(#defs / PER_PAGE))
     self.page = math.min(self.page, pages)
-    local items, last_tier = {}, nil
-    local multi = false
-    for _, d in ipairs(defs) do if d.tier ~= defs[1].tier then multi = true end end
+    local items = {}
     for i = (self.page - 1) * PER_PAGE + 1, math.min(#defs, self.page * PER_PAGE) do
         local def = defs[i]
-        if multi and def.tier ~= last_tier then
-            items[#items + 1] = { label = Registry.TIERS[def.tier] or def.tier }
-        end
-        last_tier = def.tier
         items[#items + 1] = { title = def.title, caption = def.desc, icon = def.art, callback = function() self:play(def) end,
             pin = { on = self:pinned()[def.id], callback = function() self:togglePin(def.id) self:render() end } }
     end
