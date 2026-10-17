@@ -398,8 +398,11 @@ function GameScreen:init()
             end)
             widget = ok and w or nil
         end
+        local ph = widget and widget:getSize().h or k.btn_h
+        local fill = H - 2 * margin - used - ph - gap
+        if fill > 0 then add(VerticalSpan:new{ width = fill }, fill) end
         if widget then
-            add(widget, widget:getSize().h)
+            add(widget, ph)
         else
             add(buttonRow(k, {
                 { text = "‹", enabled = pg.page > 1, callback = pg.on_prev },
