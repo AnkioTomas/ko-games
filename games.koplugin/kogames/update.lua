@@ -62,7 +62,7 @@ local function parseRelease(body)
     local tag = release.tag_name
     local version = type(tag) == "string" and tag:match("^v?(%d+%.%d+%.%d+[%w%.%+%-]*)$")
     if not version then return nil, "invalid release version" end
-    local zip_name = DIR_NAME .. "-" .. tag .. ".zip"
+    local zip_name = DIR_NAME .. "-" .. version .. ".zip"
     local zip
     for _i, asset in ipairs(release.assets or {}) do
         local url = asset.browser_download_url

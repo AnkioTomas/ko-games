@@ -77,7 +77,7 @@ local function settingEntries(desktop)
                         return Row.widget({
                             width = iw, chevron = false, kind = "toggle", icon = "update",
                             title = _("自动检查更新"),
-                            subtitle = _("每天最多检查一次，发现新版本时提示下载安装"),
+                            subtitle = _("每天最多一次，有新版本时提示"),
                             status = on and _("开") or _("关"), status_on = on,
                             callback = function()
                                 Update.setAuto(not on)

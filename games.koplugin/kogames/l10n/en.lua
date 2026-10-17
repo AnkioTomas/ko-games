@@ -236,7 +236,7 @@ return {
 
     ["更新"] = "Updates",
     ["自动检查更新"] = "Auto check for updates",
-    ["每天最多检查一次，发现新版本时提示下载安装"] = "At most once a day; prompts to install when a new version is found",
+    ["每天最多一次，有新版本时提示"] = "At most once a day, prompts on new versions",
     ["开"] = "On",
     ["关"] = "Off",
     ["检查更新"] = "Check for updates",
