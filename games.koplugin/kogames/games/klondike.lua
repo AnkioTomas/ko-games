@@ -4,7 +4,7 @@ Klondike 接龙。点按操作：点牌选中（连同下面的牌），再点�
 --]]
 local T = require("kogames.l10n")
 
-local SUITS = { "♠", "♥", "♦", "♣" }
+local SUIT_ICONS = { "spade", "heart", "diamond", "club" }
 local RANKS = { "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K" }
 local UNDO_CAP = 200
 
@@ -15,7 +15,7 @@ local function suit(id) return math.floor((math.abs(id) - 1) / 13) + 1 end
 local function red(id) local s = suit(id) return s == 2 or s == 3 end
 Core.rank, Core.suit, Core.red = rank, suit, red
 
-function Core.label(id) return RANKS[rank(id)] .. SUITS[suit(id)] end
+function Core.label(id) return RANKS[rank(id)] .. SUIT_ICONS[suit(id)] end
 
 local function copy(t)
     local o = {}
@@ -257,9 +257,9 @@ function M.new(ctx)
     end
 
     local function cardCell(card, selected)
-        local cell = { text = Core.label(card), scale = 0.36 }
+        local cell = { rank = RANKS[rank(card)], icon = "suit_" .. SUIT_ICONS[suit(card)], scale = 0.4 }
         if selected then
-            cell.fill, cell.color = "black", "white"
+            cell.fill, cell.color, cell.icon = "black", "white", cell.icon .. "_w"
         elseif red(card) then
             cell.fill = "grey" -- 红花色用浅灰底，灰度屏上与黑花色区分
         end
@@ -277,14 +277,14 @@ function M.new(ctx)
                 return cardCell(top, sel and sel.src == "waste")
             elseif c >= 4 then
                 local su = c - 3
-                if s.found[su] == 0 then return { text = SUITS[su], color = "grey", scale = 0.36 } end
+                if s.found[su] == 0 then return { icon = "suit_" .. SUIT_ICONS[su], icon_scale = 0.5, fill = "grey" } end
                 return cardCell((su - 1) * 13 + s.found[su])
             end
             return nil
         end
         local col = s.tab[c]
         local k = r - 1
-        if #col == 0 then return k == 1 and { text = "—", color = "grey" } or nil end
+        if #col == 0 then return k == 1 and { fill = "grey" } or nil end
         local h = hiddenCount(col)
         if h > 0 then
             if k == 1 then return { text = "×" .. h, fill = "dark", color = "white", scale = 0.36 } end

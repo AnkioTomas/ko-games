@@ -287,12 +287,12 @@ function M.new(ctx)
                         return { text = tostring(s.rows[r - 1]), scale = 0.5, color = rc[r - 1] == s.rows[r - 1] and "grey" or "black" }
                     end
                     local i = toIndex(r, c)
-                    if s.tree[i] then return { text = T("树"), fill = "dark", color = "white", scale = 0.5 } end
+                    if s.tree[i] then return { icon = "tree", icon_scale = 0.85 } end
                     local v = s.user[i]
                     if v == 1 then
-                        return { text = "▲", scale = 0.55, fill = conflict(s, i) and "dark" or nil, color = conflict(s, i) and "white" or "black" }
+                        return { icon = "tent", icon_scale = 0.8, fill = conflict(s, i) and "dark" or nil }
                     end
-                    if v == 2 then return { text = "·", color = "grey", scale = 0.7 } end
+                    if v == 2 then return { icon = "grass", icon_scale = 0.6 } end
                     return nil
                 end,
                 on_tap = function(r, c)

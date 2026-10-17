@@ -76,7 +76,7 @@ return function(t)
         local g = require("kogames.registry").launch(H.host, Game, nil)
         assert(H.view.grid.ratio and H.view.grid.cols == 7 and H.view.grid.rows >= 8)
         local s = g.state()
-        assert(H.view.grid.cell(2, 1).text == C.label(s.tab[1][1]))
+        assert(H.view.grid.cell(2, 1).rank and H.view.grid.cell(2, 1).icon)
         H.view.grid.on_tap(1, 1) -- draw
         assert(#s.waste == 1 and H.saved.klondike.state.moves == 1)
         H.view.grid.on_tap(1, 2) -- select waste

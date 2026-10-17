@@ -111,7 +111,6 @@ function M.new(ctx)
         for _, k in ipairs(SIZES) do
             size_row[#size_row + 1] = { text = tostring(k), selected = k == n, callback = function() if k ~= n then fresh(k) end end }
         end
-        local scale = math.min(0.4, 0.9 / n)
         ctx:render({
             title = T("汉诺塔"),
             status = status,
@@ -120,12 +119,12 @@ function M.new(ctx)
                 cell = function(r, c)
                     local level = n + 1 - r
                     if level == n then
-                        if sel == c then return { text = "▼", fill = "dark", scale = 0.4 } end
-                        return { text = tostring(c), color = "grey", scale = 0.35 }
+                        if sel == c then return { icon = "arrow_down", fill = "dark", icon_scale = 0.5 } end
+                        return nil
                     end
                     local d = s.pegs[c][level + 1]
-                    if not d then return { text = "│", scale = 0.5, color = "grey" } end
-                    return { text = string.rep("█", d), scale = scale }
+                    if not d then return { peg = true } end
+                    return { peg = true, bar = 0.3 + 0.7 * d / n }
                 end,
                 on_tap = tapCell,
             },

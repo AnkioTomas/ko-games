@@ -4,7 +4,6 @@
 --]]
 local T = require("kogames.l10n")
 local SIZES = { { 4, 4 }, { 5, 4 }, { 6, 6 } } -- { 行, 列 }
-local SYMBOLS = { "★", "♥", "♦", "♣", "♠", "●", "■", "▲", "◆", "○", "□", "△", "◇", "♪", "A", "B", "C", "D" }
 
 local Core = {}
 
@@ -91,8 +90,8 @@ function M.new(ctx)
                 rows = rows, cols = cols, gap = true,
                 cell = function(r, c)
                     local i = (r - 1) * cols + c
-                    if s.matched[i] then return { text = SYMBOLS[s.cards[i]], fill = "grey", color = "grey", scale = 0.55 } end
-                    if up[i] then return { text = SYMBOLS[s.cards[i]], scale = 0.6 } end
+                    if s.matched[i] then return { icon = string.format("sym_%02d", s.cards[i]), fill = "grey", icon_scale = 0.55 } end
+                    if up[i] then return { icon = string.format("sym_%02d", s.cards[i]), icon_scale = 0.7 } end
                     return { fill = "dark" }
                 end,
                 on_tap = tapCell,

@@ -159,11 +159,11 @@ function M.new(ctx)
                 cell = function(r, c)
                     local cell = s.cells[(r - 1) * s.cols + c]
                     if cell.open then
-                        if cell.mine then return { text = T("雷"), icon = "mine", fill = "dark", icon_scale = 0.8 } end
+                        if cell.mine then return { icon = "mine", fill = "dark", icon_scale = 0.8 } end
                         return { text = cell.n > 0 and tostring(cell.n) or "", fill = "grey" }
                     end
-                    if s.over and cell.mine and not s.won then return { text = T("雷"), icon = "mine", fill = "grey", icon_scale = 0.75 } end
-                    if cell.flag then return { text = T("旗"), icon = "flag", fill = "raised", icon_scale = 0.7 } end
+                    if s.over and cell.mine and not s.won then return { icon = "mine", fill = "grey", icon_scale = 0.75 } end
+                    if cell.flag then return { icon = "flag", fill = "raised", icon_scale = 0.7 } end
                     return { fill = "raised" }
                 end,
             },

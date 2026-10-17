@@ -28,7 +28,7 @@ return function(t)
         local s = g.state()
         H.view.grid.on_tap(s.n, s.n)
         local before = s.moves
-        H.view.buttons[3][1].callback() -- 撤销
+        H.view.buttons[2][1].callback() -- 撤销
         assert(s.moves <= before)
         local guard = 0
         while not s.done and not s.lost and guard < 500 do

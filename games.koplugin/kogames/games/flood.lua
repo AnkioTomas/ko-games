@@ -5,7 +5,7 @@
 local T = require("kogames.l10n")
 local SIZES = { 8, 12, 16 }
 local NCOL = 5
-local GLYPHS = { "1", "2", "3", "4", "5" }
+local ICONS = { "sym_06", "sym_08", "sym_07", "sym_03", "sym_01" }
 local FILLS = { "grey", "dark", "black", "raised", false }
 local MARGIN = { [8] = 2, [12] = 3, [16] = 4 }
 local UNDO_CAP = 200
@@ -118,10 +118,7 @@ function M.new(ctx)
         local best = ctx:best(key())
         if best then status = status .. T("    最少 %d", best) end
         if s.done then status = status .. T("    完成！") elseif s.lost then status = status .. T("    步数用完") end
-        local colors, sizes = {}, {}
-        for col = 1, NCOL do
-            colors[#colors + 1] = { text = GLYPHS[col], enabled = not s.done and not s.lost and col ~= s.board[1], callback = function() pick(col) end }
-        end
+        local sizes = {}
         for _, k in ipairs(SIZES) do
             sizes[#sizes + 1] = { text = k .. "×" .. k, selected = k == n, callback = function() if k ~= n then fresh(k) end end }
         end
@@ -132,12 +129,11 @@ function M.new(ctx)
                 rows = n, cols = n,
                 cell = function(r, c)
                     local v = s.board[(r - 1) * n + c]
-                    return { text = GLYPHS[v], fill = FILLS[v] or nil, color = (v == 3) and "white" or "black", scale = n > 12 and 0.4 or 0.5 }
+                    return { icon = ICONS[v] .. (v == 3 and "_w" or ""), fill = FILLS[v] or nil, icon_scale = 0.6 }
                 end,
                 on_tap = function(r, c) pick(s.board[(r - 1) * n + c]) end,
             },
             buttons = {
-                colors,
                 sizes,
                 {
                     { text = T("撤销"), enabled = #undo > 0, callback = function()

@@ -229,7 +229,7 @@ function M.new(ctx)
                     if pr >= 1 and pc >= 1 then
                         local v = s.user[(pr - 1) * n + pc]
                         if v == 1 then return { fill = "black" } end
-                        if v == 2 then return { text = "×", color = "grey", scale = 0.6 } end
+                        if v == 2 then return { icon = "cross", icon_scale = 0.6 } end
                         return nil
                     end
                     if pr < 1 and pc < 1 then return nil end

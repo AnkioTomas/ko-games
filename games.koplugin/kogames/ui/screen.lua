@@ -245,7 +245,22 @@ function Board:paintTo(bb, x, y)
                     bb:paintRect(cx + e, cy + ch - e, cs - e, e, Blitbuffer.Color8(0x66))
                     bb:paintRect(cx + cs - e, cy + e, e, ch - e, Blitbuffer.Color8(0x66))
                 end
-                if cell.icon then
+                if cell.peg then
+                    local pw = math.max(2, math.floor(cs * 0.06))
+                    bb:paintRect(cx + math.floor((cs - pw) / 2), cy, pw, ch, Blitbuffer.Color8(0x99))
+                end
+                if cell.bar then
+                    local bw, bh = math.floor(cs * 0.94 * cell.bar), math.floor(ch * 0.8)
+                    bb:paintRoundedRect(cx + math.floor((cs - bw) / 2), cy + math.floor((ch - bh) / 2), bw, bh, ink, math.floor(bh / 2))
+                end
+                if cell.rank then
+                    local isz = math.floor(ch * 0.46)
+                    local tsz = math.max(8, math.floor(ch * (cell.scale or 0.4)))
+                    local tw = self:text(cell.rank, tsz, cell.color or "black")
+                    local sz = tw:getSize()
+                    tw:paintTo(bb, cx + math.floor((cs - sz.w) / 2), cy + math.floor(ch * 0.04))
+                    paintIcon(bb, cell.icon, cx + math.floor((cs - isz) / 2), cy + ch - isz - math.floor(ch * 0.06), isz)
+                elseif cell.icon then
                     local isz = math.floor(m * (cell.icon_scale or 0.8))
                     if not paintIcon(bb, cell.icon, cx + math.floor((cs - isz) / 2), cy + math.floor((ch - isz) / 2), isz)
                         and cell.text then
