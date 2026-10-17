@@ -208,7 +208,7 @@ test("lobby lists games and launches one", function()
     for _, it in ipairs(H.view.cards.items) do
         if it.callback then n = n + 1 first = first or it end
     end
-    assert(n >= #Registry.LIST)
+    assert(n == math.min(8, #Registry.LIST))
     first.callback()
     assert(H.view.title ~= "游戏")
     H.view.back() -- 标题栏返回 → 大厅
@@ -253,5 +253,12 @@ test("l10n: language selection and formatting", function()
     L.load("zh_CN")
     assert(L("撤销") == "撤销" and L("新纪录：%d", 5) == "新纪录：5")
 end)
+
+-- spec/cases/*.lua：每个文件 return function(t)，t = { test, launch, H, Rng }，放各游戏自己的用例
+local ls = io.popen("ls spec/cases/*.lua 2>/dev/null")
+for path in ls:lines() do
+    dofile(path)({ test = test, launch = launch, H = H, Rng = Rng })
+end
+ls:close()
 
 print(("%d tests passed"):format(passed))

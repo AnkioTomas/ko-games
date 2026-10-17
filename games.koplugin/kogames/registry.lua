@@ -7,7 +7,8 @@ tier：A 纯静态点按（墨水屏最佳）/ B 回合慢节奏 / C 实时（�
 local T = require("kogames.l10n")
 local Registry = {}
 
-Registry.LIST = { "g2048", "minesweeper", "sudoku", "gomoku", "sokoban" }
+Registry.LIST = { "g2048", "minesweeper", "sudoku", "gomoku", "sokoban",
+    "connect4", "reversi", "fifteen", "nonogram", "klondike" }
 
 Registry.TIERS = {
     A = T("静态益智 · 墨水屏最佳"),

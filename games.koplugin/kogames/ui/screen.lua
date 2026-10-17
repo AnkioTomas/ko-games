@@ -9,6 +9,7 @@ view = {
     cell = function(r, c) return { text = "2", fill = "grey"|"dark"|"black", color = "white", shape = "black"|"white", scale = 0.5 } end,
     on_tap = function(r, c) end, on_hold = function(r, c) end,
     thick = 3,                                 -- 可选：每 3 格画粗线（数独）
+    ratio = 0.7,                               -- 可选：格高/格宽，默认 1（方格）；设置后按整屏宽高分别适配
   },
   on_swipe = function(dir) end,                -- dir = "north"|"south"|"east"|"west"
   buttons = { { {text=, callback=, enabled=, selected=}, ... } 一行, { label = "分组标题" } },
@@ -178,8 +179,11 @@ local Board = Widget:extend{}
 
 function Board:init()
     local g = self.grid
-    self.cs = math.max(1, math.floor(math.min(self.size / g.cols, self.size / g.rows)))
-    self.dimen = Geom:new{ w = self.cs * g.cols, h = self.cs * g.rows }
+    local ratio = g.ratio or 1
+    local w, h = self.width or self.size, self.height or self.size
+    self.cs = math.max(1, math.floor(math.min(w / g.cols, h / (g.rows * ratio))))
+    self.ch = math.max(1, math.floor(self.cs * ratio))
+    self.dimen = Geom:new{ w = self.cs * g.cols, h = self.ch * g.rows }
     self.texts = {}
 end
 
@@ -195,11 +199,12 @@ end
 
 function Board:paintTo(bb, x, y)
     self.dimen.x, self.dimen.y = x, y
-    local g, cs = self.grid, self.cs
+    local g, cs, ch = self.grid, self.cs, self.ch
+    local m = math.min(cs, ch)
     local ink = Blitbuffer.COLOR_BLACK
     local white = Blitbuffer.COLOR_WHITE
     local gap = g.gap and math.max(2, px(3)) or 0
-    local radius = g.gap and math.floor(cs * 0.12) or 0
+    local radius = g.gap and math.floor(m * 0.12) or 0
     bb:paintRect(x, y, self.dimen.w, self.dimen.h, g.gap and Blitbuffer.Color8(0xF2) or white)
     local go = g.style == "go"
     if go then
@@ -220,26 +225,26 @@ function Board:paintTo(bb, x, y)
     for r = 1, g.rows do
         for c = 1, g.cols do
             local cell = g.cell(r, c)
-            local cx, cy = x + (c - 1) * cs, y + (r - 1) * cs
+            local cx, cy = x + (c - 1) * cs, y + (r - 1) * ch
             if cell then
                 if cell.fill and FILLS[cell.fill] and not go then
                     if g.gap then
-                        bb:paintRoundedRect(cx + gap, cy + gap, cs - gap * 2, cs - gap * 2, FILLS[cell.fill], radius)
+                        bb:paintRoundedRect(cx + gap, cy + gap, cs - gap * 2, ch - gap * 2, FILLS[cell.fill], radius)
                     else
-                        bb:paintRect(cx, cy, cs, cs, FILLS[cell.fill])
+                        bb:paintRect(cx, cy, cs, ch, FILLS[cell.fill])
                     end
                 end
                 if cell.fill == "raised" then
-                    local e = math.max(2, math.floor(cs * 0.07))
-                    bb:paintRect(cx, cy, cs, cs, Blitbuffer.Color8(0xB8))
+                    local e = math.max(2, math.floor(m * 0.07))
+                    bb:paintRect(cx, cy, cs, ch, Blitbuffer.Color8(0xB8))
                     bb:paintRect(cx, cy, cs - e, e, white)
-                    bb:paintRect(cx, cy, e, cs - e, white)
-                    bb:paintRect(cx + e, cy + cs - e, cs - e, e, Blitbuffer.Color8(0x66))
-                    bb:paintRect(cx + cs - e, cy + e, e, cs - e, Blitbuffer.Color8(0x66))
+                    bb:paintRect(cx, cy, e, ch - e, white)
+                    bb:paintRect(cx + e, cy + ch - e, cs - e, e, Blitbuffer.Color8(0x66))
+                    bb:paintRect(cx + cs - e, cy + e, e, ch - e, Blitbuffer.Color8(0x66))
                 end
                 if cell.icon then
-                    local isz = math.floor(cs * (cell.icon_scale or 0.8))
-                    if not paintIcon(bb, cell.icon, cx + math.floor((cs - isz) / 2), cy + math.floor((cs - isz) / 2), isz)
+                    local isz = math.floor(m * (cell.icon_scale or 0.8))
+                    if not paintIcon(bb, cell.icon, cx + math.floor((cs - isz) / 2), cy + math.floor((ch - isz) / 2), isz)
                         and cell.text then
                         cell.text_fallback = true
                     end
@@ -252,14 +257,14 @@ function Board:paintTo(bb, x, y)
                     end
                 end
                 if cell.mark then
-                    local m = math.floor(cs * 0.16)
-                    bb:paintRect(cx + math.floor((cs - m) / 2), cy + math.floor((cs - m) / 2), m, m, cell.mark == "white" and white or ink)
+                    local mk = math.floor(m * 0.16)
+                    bb:paintRect(cx + math.floor((cs - mk) / 2), cy + math.floor((ch - mk) / 2), mk, mk, cell.mark == "white" and white or ink)
                 end
                 if cell.text and cell.text ~= "" and (not cell.icon or cell.text_fallback) then
-                    local size = math.max(8, math.floor(cs * (cell.scale or 0.5)))
+                    local size = math.max(8, math.floor(m * (cell.scale or 0.5)))
                     local tw = self:text(cell.text, size, cell.color or (cell.fill == "black" and "white" or "black"))
                     local sz = tw:getSize()
-                    tw:paintTo(bb, cx + math.floor((cs - sz.w) / 2), cy + math.floor((cs - sz.h) / 2))
+                    tw:paintTo(bb, cx + math.floor((cs - sz.w) / 2), cy + math.floor((ch - sz.h) / 2))
                 end
             end
         end
@@ -275,14 +280,14 @@ function Board:paintTo(bb, x, y)
     for i = 0, g.rows do
         local edge = i == 0 or i == g.rows
         local thick = edge or (g.thick and i % g.thick == 0)
-        bb:paintRect(x, y + i * cs - (thick and 1 or 0), self.dimen.w, thick and bold or thin, thick and ink or RULE)
+        bb:paintRect(x, y + i * ch - (thick and 1 or 0), self.dimen.w, thick and bold or thin, thick and ink or RULE)
     end
 end
 
 function Board:cellAt(pos)
     local d = self.dimen
     if pos.x < d.x or pos.y < d.y or pos.x >= d.x + d.w or pos.y >= d.y + d.h then return end
-    return math.floor((pos.y - d.y) / self.cs) + 1, math.floor((pos.x - d.x) / self.cs) + 1
+    return math.floor((pos.y - d.y) / self.ch) + 1, math.floor((pos.x - d.x) / self.cs) + 1
 end
 
 -- 界面 ------------------------------------------------------------------
@@ -374,7 +379,8 @@ function GameScreen:init()
     if v.grid then
         local avail = H - used - btn_total - 2 * margin - gap * 2
         local size = math.max(px(100), math.min(inner, avail))
-        self.board = Board:new{ grid = v.grid, size = size }
+        self.board = Board:new{ grid = v.grid, size = size,
+            width = v.grid.ratio and inner or nil, height = v.grid.ratio and math.max(px(100), avail) or nil }
         add(CenterContainer:new{ dimen = Geom:new{ w = inner, h = self.board.dimen.h }, self.board }, self.board.dimen.h)
         add(VerticalSpan:new{ width = px(14) }, px(14))
     end
