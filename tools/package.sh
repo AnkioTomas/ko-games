@@ -3,6 +3,7 @@
 set -e
 cd "$(dirname "$0")/.."
 VERSION="${1:-dev}"
+VERSION="${VERSION#v}"
 OUT="${2:-dist/games.koplugin-$VERSION.zip}"
 mkdir -p "$(dirname "$OUT")"
 OUT="$(cd "$(dirname "$OUT")" && pwd)/$(basename "$OUT")"
