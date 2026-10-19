@@ -226,10 +226,12 @@ function M.new(ctx)
                     for _, q in ipairs(cells) do
                         d.rect(ox + q[2] * 3, 6 + q[1] * 3, 2.8, 2.8, "black")
                     end
-                    d.text(tostring(s.score), px + 12, 32, 5, "black")
-                    d.text("Lv " .. Core.level(s), px + 12, 41, 3.4, "dark")
-                    d.text("Ln " .. s.lines, px + 12, 48, 3.4, "dark")
-                    d.text("HI " .. best, px + 12, 55, 3.4, "dark")
+                    d.text(tostring(s.score), px + 12, 31, 4.2, "black")
+                    for k, row in ipairs({ { "level", Core.level(s) }, { "rows", s.lines }, { "crown", best } }) do
+                        local y = 42 + (k - 1) * 9
+                        d.icon(row[1], px + 3, y, 5)
+                        d.text(tostring(row[2]), px + 7 + #tostring(row[2]) * 1.4, y, 3.4, "black")
+                    end
                 end,
                 on_tap = function(x)
                     if s.over then self.newGame() return end
