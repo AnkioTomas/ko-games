@@ -290,4 +290,13 @@ return {
     ["连锁 ×%d  +%d"] = "Chain ×%d  +%d",
     ["选角度发射钩子，抓金子"] = "Aim the claw and grab gold",
     ["黄金矿工"] = "Gold Miner",
+    ["点灯"] = "Lights Out",
+    ["把所有的灯都熄灭"] = "Turn every light off",
+    ["电脑赢了"] = "Computer wins",
+    ["井字棋"] = "Tic-Tac-Toe",
+    ["连成一线即获胜"] = "Line up to win",
+    ["你执 X 先手，电脑执 O。点空格落子，横、竖、斜任意方向先连成一线者获胜。\n可选 3×3（连三）、4×4（连四）、5×5（连四）。3×3 的电脑不会输，最好的结果是平局；棋盘越大越有机会获胜。"] = "You play X and move first; the computer plays O. Tap an empty cell to place your mark. The first to line up the required marks in a row, column or diagonal wins.\nChoose 3×3 (three in a row), 4×4 (four) or 5×5 (four). On 3×3 the computer never loses, so a draw is the best you can do; larger boards give you real chances.",
+    ["    胜场 %d"] = "    Wins %d",
+    ["轮到你（X）"] = "Your turn (X)",
+    ["目标：熄灭所有黑色的灯。\n点一格会翻转它和上下左右相邻格子的亮灭。\n可选 4×4、5×5、6×6 三种大小，步数越少越好。"] = "Goal: turn off every dark light.\nTapping a cell flips it and its four neighbours.\nChoose 4×4, 5×5 or 6×6; fewer moves is better.",
 }
