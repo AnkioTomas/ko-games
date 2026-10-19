@@ -16,6 +16,34 @@ return function(t)
         assert(#mv == 7 and not forced)
     end)
 
+    test("checkers perft matches English draughts (7, 49, 302, 1469)", function()
+        local function perft(b, who, d)
+            if d == 0 then return 1 end
+            local n = 0
+            for _, m in ipairs(C.moves(b, who)) do
+                n = n + perft(C.apply(b, m), who == 1 and 2 or 1, d - 1)
+            end
+            return n
+        end
+        local b = C.fresh().board
+        assert(perft(b, 1, 1) == 7 and perft(b, 1, 2) == 49 and perft(b, 1, 3) == 302 and perft(b, 1, 4) == 1469)
+    end)
+
+    test("checkers captured pieces still block until the move ends", function()
+        local s = empty()
+        -- king loops around a 2x2 block of white men: may not jump the same piece twice
+        s.board[at(8, 1)] = 2
+        s.board[at(7, 2)] = 3
+        s.board[at(5, 4)] = 3
+        s.board[at(5, 2)] = 3
+        s.board[at(7, 4)] = 3
+        local mv = C.moves(s.board, 1)
+        for _, m in ipairs(mv) do
+            local seen = {}
+            for _, k in ipairs(m.caps) do assert(not seen[k]); seen[k] = true end
+        end
+    end)
+
     test("checkers capture is mandatory and multi-jumps", function()
         local s = empty()
         s.board[at(8, 1)] = 1

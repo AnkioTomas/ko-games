@@ -13,7 +13,7 @@ local TIME_LIMIT = 0.45
 
 local Core = {}
 
-local function owner(p) if p == 0 then return nil end return p <= 2 and HUMAN or AI end
+local function owner(p) if p <= 0 then return nil end return p <= 2 and HUMAN or AI end
 local function isKing(p) return p == 2 or p == 4 end
 local function other(who) return who == HUMAN and AI or HUMAN end
 local function rc(i) return math.floor((i - 1) / N) + 1, (i - 1) % N + 1 end
@@ -60,7 +60,7 @@ local function jumps(b, pos, piece, who, path, caps, out)
             if owner(b[mid]) == other(who) and b[land] == 0 then
                 extended = true
                 local taken = b[mid]
-                b[mid] = 0
+                b[mid] = -1 -- 被吃的子留到整步结束才移走，仍会挡路
                 path[#path + 1] = land
                 caps[#caps + 1] = mid
                 local crowned = not isKing(piece) and lr == promoRow(who)
