@@ -99,11 +99,14 @@ return function(t)
         s.objs, s.time, s.phase, s.len = {}, 0.2, "swing", 7
         g.tick()
         assert(s.over and H.saved["stats_goldminer"].level == 1)
-        local found
+        H.view.canvas.on_tap(50, 50)
+        assert(not g.state().over and g.state().time == 60 and not g.paused())
+        g.pause()
+        local n = 0
         for _, row in ipairs(H.view.buttons) do
-            if row[1] and row[1].text == "重新开始" then found = true end
+            for _, b in ipairs(row) do if not b.menu then n = n + 1 assert(b.icon == "dynamite") end end
         end
-        assert(found)
+        assert(n == 1)
         g.newGame()
         s = g.state()
         s.money = 77

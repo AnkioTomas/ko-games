@@ -226,7 +226,7 @@ function Core.tick(s, rng)
 end
 
 local M = { id = "goldminer", title = T("黄金矿工"), icon = "paid", tier = "C", desc = T("摆动的钩子，抓金子"),
-    help = T("经典黄金矿工：钩子会在矿工下方左右摆动，点屏幕任意处（或点「发射」）放出钩子，沿当前方向直线伸出。\n钩子碰到金块、钻石、钱袋或石头就抓住并拉回：大金块和石头很重，拉得很慢；小金块、钻石、钱袋拉得快。没抓到东西钩子会空收回。\n每关有倒计时，时间到时现金达到目标就过关（现金会带到下一关，目标逐关提高），否则游戏结束。\n每关有 2 枚炸药：拉着东西往回收时点「炸药」，炸掉手里的东西（不得分）并立刻空钩收回，适合甩掉石头。\n墨水屏每一拍都会刷新一次；可点「暂停」随时暂停，难度（休闲/标准/困难）在设置里选。"),
+    help = T("经典黄金矿工：钩子会在矿工下方左右摆动，点画布任意处放出钩子，沿当前方向直线伸出。\n钩子碰到金块、钻石、钱袋或石头就抓住并拉回：大金块和石头很重，拉得很慢；小金块、钻石、钱袋拉得快。没抓到东西钩子会空收回。\n画布左上是现金/目标，右上是剩余时间，下面的炸药图标是剩余炸药数。时间到时现金达到目标就过关（现金会带到下一关，目标逐关提高），否则游戏结束。\n拉着东西往回收时点底部炸药按钮，炸掉手里的东西（不得分）并立刻空钩收回，适合甩掉石头。\n开局、暂停、过关、失败时点画布继续；暂停、新游戏和难度（休闲/标准/困难）在右上角设置里。"),
     core = Core }
 
 function M.new(ctx)
@@ -260,35 +260,21 @@ function M.new(ctx)
 
     function self.render()
         local target = Core.target(s.level, s.mode)
-        local status = T("现金 %d / 目标 %d    时间 %d    第 %d 关    炸药 %d", s.money, target, math.ceil(s.time), s.level, s.dyn)
+        local status = T("第 %d 关", s.level)
         local best = ctx:best("level")
         if best then status = status .. T("    最高 %d 关", math.max(best, s.level)) end
-        if s.over then status = status .. T("    时间到，游戏结束")
-        elseif s.cleared then status = status .. T("    过关！")
-        elseif paused then status = status .. T("    已暂停") end
-        local ev = s.event
-        if ev and ev.kind == "gain" and not s.over and not s.cleared then status = status .. "    +" .. ev.value
-        elseif ev and ev.kind == "blast" and not s.over and not s.cleared then status = status .. T("    炸掉了") end
 
         local mode_row = {}
         for _, m in ipairs(MODES) do
             mode_row[#mode_row + 1] = { text = T(m.label), selected = m.id == s.mode, callback = function() self.newGame(m.id) end }
         end
-        local buttons
-        if s.over then
-            buttons = { { { text = T("重新开始"), callback = function() self.newGame() end } } }
-        elseif s.cleared then
-            buttons = { { { text = T("下一关"), callback = function() self.nextLevel() end } } }
-        else
-            buttons = {
-                { { text = T("发射"), enabled = not paused and s.phase == "swing", callback = function() self.fire() end },
-                  { text = T("炸药 %d", s.dyn), enabled = not paused and s.phase == "back" and s.held ~= nil and s.dyn > 0,
-                    callback = function() self.blast() end } },
-                { { text = paused and (s.time >= modeOf(s.mode).time and T("开始") or T("继续")) or T("暂停"),
-                    callback = function() self.toggle() end },
-                  { menu = true, text = T("新游戏"), callback = function() self.newGame() end } },
-            }
-        end
+        local buttons = {
+            { { icon = "dynamite", enabled = not paused and s.phase == "back" and s.held ~= nil and s.dyn > 0,
+                callback = function() self.blast() end },
+              { menu = true, text = paused and not (s.over or s.cleared) and T("继续") or T("暂停"),
+                enabled = not (s.over or s.cleared), callback = function() self.toggle() end },
+              { menu = true, text = T("新游戏"), callback = function() self.newGame() end } },
+        }
 
         ctx:render({
             title = T("黄金矿工"),
@@ -296,7 +282,7 @@ function M.new(ctx)
             canvas = {
                 w = W, h = H,
                 draw = function(d) self.draw(d, target) end,
-                on_tap = function() self.fire() end,
+                on_tap = function() self.tap() end,
             },
             settings = { groups = { { label = T("难度"), options = mode_row } }, reset = function() self.newGame() end },
             buttons = buttons,
@@ -306,43 +292,37 @@ function M.new(ctx)
     function self.draw(d, target)
         d.rect(0, GROUND, W, H - GROUND, "grey")
         d.rect(0, GROUND - 0.8, W, 1.6, "black")
-        -- 矿工与绞盘
-        d.rect(30, 9, 6, 8, "dark")
-        d.circle(33, 7, 3, "dark")
-        d.rect(30, 3.5, 6, 1.6, "black")
-        d.rect(36, 13, 9, 3, "black")
-        d.rect(AX - 5, AY - 4, 10, 8, "black")
-        d.circle(AX, AY, 2, "white")
-        d.text("$" .. s.money, 16, 8, 5, "black")
-        d.text(T("目标 %d", target), 80, 4, 4, "dark")
-        d.text(tostring(math.ceil(s.time)) .. "s", 84, 11, 5, "black")
-        local function disc(o, fill, edge)
-            d.circle(o.x, o.y, o.r, edge)
-            d.circle(o.x, o.y, o.r - 0.9, fill)
-        end
+        d.icon("miner", 70, 11, 18)
+        d.icon("winch", AX, AY - 1, 13)
+        d.icon("coin", 6, 5, 6)
+        d.text(s.money .. "/" .. target, 24, 5, 3.2, "black")
+        d.icon("clock", 84, 5, 6)
+        d.text(tostring(math.ceil(s.time)), 93, 5, 3.6, "black")
+        for i = 1, s.dyn do d.icon("dynamite", 3 + i * 7, 14, 7) end
         for _, o in ipairs(s.objs) do
-            local k = o.kind
-            if k == "gold_l" or k == "gold_m" or k == "gold_s" then
-                disc(o, "black", "black")
-                d.circle(o.x - o.r * 0.35, o.y - o.r * 0.35, o.r * 0.25, "white")
-            elseif k == "stone" or k == "stone_s" then
-                disc(o, "dark", "black")
-                d.line(o.x - o.r * 0.4, o.y - o.r * 0.1, o.x + o.r * 0.2, o.y + o.r * 0.3, "black", 0.5)
-            elseif k == "diamond" then
-                d.text("◆", o.x, o.y, o.r * 3.2, "black")
-            else
-                disc(o, "white", "black")
-                d.text("$", o.x, o.y, o.r * 1.5, "black")
-            end
+            d.icon(o.kind == "stone_s" and "stone" or o.kind, o.x, o.y, (o.kind == "diamond" and 3.4 or 2.5) * o.r)
         end
         local tx, ty = Core.tip(s)
         d.line(AX, AY, tx, ty, "black", 0.5)
-        local a = Core.angle(s)
-        for _, side in ipairs({ -1, 1 }) do
-            local b = a + side * 0.9
-            d.line(tx, ty, tx + math.sin(b) * 3.2, ty + math.cos(b) * 3.2, "black", 0.9)
+        d.icon("hook", tx, ty + 1.5, 6)
+        local ev = s.event
+        if ev and ev.kind == "gain" and not s.over and not s.cleared then
+            d.text("+" .. ev.value, AX, 27, 3.6, "black")
         end
-        d.circle(tx, ty, 1.2, "black")
+        local mark = s.over and "retry" or s.cleared and "next" or paused and "play"
+        if mark then
+            d.rect(30, 52, 40, 26, "white")
+            d.frame(30, 52, 40, 26, "black", 0.8)
+            d.icon(mark, 50, 65, 20)
+        end
+    end
+
+    --- 点画布：暂停/过关/失败时继续，否则放钩。
+    function self.tap()
+        if s.over then self.newGame() self.resume()
+        elseif s.cleared then self.nextLevel() self.resume()
+        elseif paused then self.resume() self.render()
+        else self.fire() end
     end
 
     function self.tick()
