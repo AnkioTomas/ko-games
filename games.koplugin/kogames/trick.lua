@@ -232,13 +232,13 @@ function Core.define(spec)
         end
 
         local function advance()
-            local was = s.phase
             if Core.step(s) == "redeal" then
                 ctx:notify(T("没人叫地主，重新发牌"))
                 s = Core.deal(ctx.rng, spec.mode)
                 return advance()
             end
-            if was ~= "done" and s.phase == "done" then
+            if s.phase == "done" and not s.counted then
+                s.counted = true
                 bump("games")
                 if Core.humanWon(s) then bump("wins") end
             end
