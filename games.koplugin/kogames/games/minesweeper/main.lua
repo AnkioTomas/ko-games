@@ -91,11 +91,18 @@ function M.new(ctx)
 
     local function persist() ctx:save({ state = s, started = started }) end
 
-    local function elapsed() return started and math.max(0, math.floor(ctx.host:now() - started)) or 0 end
+    local function elapsed()
+        if s.time then return s.time end
+        return started and math.max(0, math.floor(ctx.host:now() - started)) or 0
+    end
 
     local function finish()
+        if s.time then return end
+        s.time = elapsed()
         if s.won then
-            local t = elapsed()
+            local t = s.time
+            for _, cell in ipairs(s.cells) do if cell.mine then cell.flag = true end end
+            s.flags = s.mines
             if ctx:record("best_" .. s.level, t, true) then ctx:notify((T("新纪录：%d 秒")):format(t)) end
         end
     end

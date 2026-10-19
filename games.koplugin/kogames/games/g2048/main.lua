@@ -114,9 +114,10 @@ function M.new(ctx)
         if not Core.move(s, dir) then return end
         prev = before
         Core.spawn(s, ctx.rng)
+        if ctx:record(key(), s.score) then s.beat = true end
         if not Core.canMove(s) then
             s.over = true
-            if ctx:record(key(), s.score) then ctx:notify(T("新纪录：%d", s.score)) end
+            if s.beat then ctx:notify(T("新纪录：%d", s.score)) end
         end
         persist()
         self.render()
