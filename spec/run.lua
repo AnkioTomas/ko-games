@@ -1,5 +1,7 @@
 -- 无 KOReader 的离线测试：luajit spec/run.lua（在仓库根目录运行）
 package.path = "games.koplugin/?.lua;" .. package.path
+unpack = unpack or table.unpack
+math.atan2 = math.atan2 or function(y, x) return math.atan(y, x) end
 
 local H = { saved = {}, view = nil, shows = 0, settings = {}, notes = {} }
 H.host = {
