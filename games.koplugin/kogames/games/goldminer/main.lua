@@ -1,275 +1,423 @@
 --[[--
-黄金矿工（回合版）。实时摆动的钩子在墨水屏上不可行，改成：选一个角度（点棋盘或点 ◀ ▶），按「发射」，
-一次结算。每次发射消耗「时间」：往返距离 ×（1 + 物品重量），所以重的石头和大金块很费时间；
-没抓到东西也要花固定时间。时间用完时现金达到目标就过关，否则游戏结束。
-炸药：开启后下一次抓到的东西会被炸掉（不得分），只花去程时间，用来甩掉石头之类的累赘。
+黄金矿工（经典版）。钩子绕矿工的绞盘左右匀速摆动，点屏幕（或「发射」）后沿当前角度伸出，
+碰到东西就抓住往回拉：金块越大、石头越重拉得越慢，钻石和小金块又快又值钱。
+墨水屏用定时 tick（约 0.3 秒一拍）推进：摆动、伸缩、倒计时都按拍走。
+时间到时现金达到目标就过关（现金带到下一关，目标逐关提高），否则游戏结束。
+炸药：拉回途中点「炸药」，炸掉手里的东西（不得分），钩子立刻空钩收回。
 --]]
 local T = require("kogames.l10n")
 
-local ROWS, COLS = 11, 9
-local ORIGIN_X, ORIGIN_Y = COLS / 2, 0.5
-local STEPS, STEP_DEG = 11, 15
-local MID = (STEPS + 1) / 2
-local MISS_COST = 3
-local FIRST_ROW = 3
+local W, H = 100, 130
+local AX, AY = 50, 17 -- 钩子锚点（绞盘）
+local GROUND = 21
+local TICK = 0.3
+local STEPS, STEP_DEG = 6, 12 -- 摆动 ±72°，一个来回 24 拍，单程 12 拍
+local OUT_SPEED = 13
+local EMPTY_SPEED = 14
+local HOOK_R = 1.6
+local DYN = 2
+local REST = 7 -- 钩子静止时的绳长
 
 local KINDS = {
-    gold_s = { value = 50, w = 0.8, odds = 34 },
-    gold_m = { value = 120, w = 1.4, odds = 20 },
-    gold_l = { value = 300, w = 2.4, odds = 8 },
-    stone = { value = 20, w = 2.6, odds = 22 },
-    diamond = { value = 600, w = 0.5, odds = 5 },
-    bag = { value = 0, w = 1.2, odds = 11 },
+    gold_l = { r = 9, value = 500, speed = 3, odds = 14 },
+    gold_m = { r = 6, value = 250, speed = 5, odds = 30 },
+    gold_s = { r = 3.5, value = 100, speed = 9, odds = 40 },
+    stone = { r = 6, value = 20, speed = 2.5, odds = 0 },
+    stone_s = { r = 4, value = 11, speed = 4, odds = 0 },
+    diamond = { r = 2.6, value = 600, speed = 10, odds = 0 },
+    bag = { r = 4.6, value = 150, speed = 7, odds = 0 },
 }
-local ORDER = { "gold_s", "gold_m", "gold_l", "stone", "diamond", "bag" }
-local MODES = { { id = "easy", time = 80, label = "休闲" }, { id = "normal", time = 60, label = "标准" }, { id = "hard", time = 45, label = "困难" } }
+local GOLDS = { "gold_l", "gold_m", "gold_s" }
 
-local Core = {}
+local MODES = {
+    { id = "easy", label = "休闲", time = 75, mult = 0.75 },
+    { id = "normal", label = "标准", time = 60, mult = 1 },
+    { id = "hard", label = "困难", time = 50, mult = 1.3 },
+}
+local function modeOf(id)
+    for _, m in ipairs(MODES) do if m.id == id then return m end end
+    return MODES[2]
+end
 
-function Core.target(level)
+local Core = { W = W, H = H, AX = AX, AY = AY, GROUND = GROUND, TICK = TICK, STEPS = STEPS, STEP_DEG = STEP_DEG,
+    KINDS = KINDS, MODES = MODES, DYN = DYN }
+
+--- 到该关为止累计的目标现金（现金跨关保留）。
+function Core.target(level, mode)
+    local m = modeOf(mode)
     local t = 0
-    for l = 1, level do t = t + 220 + 130 * l end
-    return t
+    for l = 1, level do t = t + 650 + (l - 1) * 450 + (l > 1 and (l - 1) * (l - 1) * 40 or 0) end
+    return math.floor(t * m.mult / 10 + 0.5) * 10
 end
 
-local function pick(rng)
-    local total = 0
-    for _, k in ipairs(ORDER) do total = total + KINDS[k].odds end
-    local n = rng:int(total)
-    for _, k in ipairs(ORDER) do
-        n = n - KINDS[k].odds
-        if n <= 0 then return k end
+local function dist(ax, ay, bx, by) return math.sqrt((ax - bx) ^ 2 + (ay - by) ^ 2) end
+
+local function place(s, rng, kind)
+    local r = KINDS[kind].r
+    for _ = 1, 50 do
+        local x = 6 + r + rng:float() * (W - 12 - 2 * r)
+        local y = 36 + r + rng:float() * (H - 40 - 2 * r)
+        local ok = true
+        for _, o in ipairs(s) do
+            if dist(x, y, o.x, o.y) < o.r + r + 2 then ok = false break end
+        end
+        if ok then
+            s[#s + 1] = { kind = kind, x = x, y = y, r = r }
+            return true
+        end
     end
+    return false
 end
 
-function Core.genBoard(rng, level, money)
-    local need = Core.target(level) - money
-    local board
-    for _ = 1, 60 do
-        board = {}
-        for i = 1, ROWS * COLS do board[i] = 0 end
-        local free = {}
-        for r = FIRST_ROW, ROWS do
-            for c = 1, COLS do free[#free + 1] = (r - 1) * COLS + c end
-        end
-        rng:shuffle(free)
-        local n = math.min(14 + level * 2, 26)
-        local sum = 0
-        for i = 1, n do
-            local k = pick(rng)
-            board[free[i]] = k
-            sum = sum + (k == "bag" and 120 or KINDS[k].value)
-        end
-        if sum >= need * 1.8 then break end
+--- 生成物品，保证总价值足够超过 need。
+function Core.genObjs(rng, level, need)
+    local objs = {}
+    for _ = 1, math.min(5, 2 + math.floor(level / 2) + rng:int(2)) do
+        place(objs, rng, rng:int(3) == 1 and "stone_s" or "stone")
     end
-    return board
+    for _ = 1, rng:int(2) do place(objs, rng, "bag") end
+    for _ = 1, rng:int(3) do place(objs, rng, "diamond") end
+    local function total()
+        local v = 0
+        for _, o in ipairs(objs) do
+            if o.kind ~= "stone" and o.kind ~= "stone_s" then v = v + KINDS[o.kind].value end
+        end
+        return v
+    end
+    local sum_odds = 0
+    for _, k in ipairs(GOLDS) do sum_odds = sum_odds + KINDS[k].odds end
+    local guard = 0
+    while (total() < need * 1.7 or #objs < 12) and guard < 60 and #objs < 24 do
+        guard = guard + 1
+        local roll, pick = rng:float() * sum_odds, GOLDS[3]
+        for _, k in ipairs(GOLDS) do
+            roll = roll - KINDS[k].odds
+            if roll <= 0 then pick = k break end
+        end
+        place(objs, rng, pick)
+    end
+    return objs
+end
+
+local function setupLevel(s, rng)
+    local m = modeOf(s.mode)
+    s.time = m.time
+    s.dyn = DYN
+    s.phase, s.k, s.dir, s.len, s.ang, s.held = "swing", 0, 1, REST, 0, nil
+    s.cleared, s.over, s.event = false, false, nil
+    s.objs = Core.genObjs(rng, s.level, math.max(400, Core.target(s.level, s.mode) - s.money))
 end
 
 function Core.fresh(rng, mode)
-    local s = { level = 1, money = 0, dyn = 1, armed = false, aim = MID, mode = mode or "normal", shots = 0 }
-    s.time = Core.budget(s)
-    s.board = Core.genBoard(rng, 1, 0)
+    local s = { mode = modeOf(mode).id, level = 1, money = 0 }
+    setupLevel(s, rng)
     return s
 end
 
-function Core.budget(s)
-    for _, m in ipairs(MODES) do
-        if m.id == s.mode then return m.time end
-    end
-    return 60
-end
-
-function Core.remaining(s)
-    local n = 0
-    for _, v in ipairs(s.board) do if v ~= 0 and v ~= "stone" then n = n + 1 end end
-    return n
-end
-
---- 当前关是否结束：时间耗尽，或可得分的东西都抓完了。
-function Core.levelOver(s) return s.time <= 0 or Core.remaining(s) == 0 end
-function Core.won(s) return s.money >= Core.target(s.level) end
-
-function Core.angle(idx) return (idx - MID) * STEP_DEG end
-
---- 沿角度发射的射线：返回命中格序号（或 nil）、命中距离、途经的空格列表。
-function Core.ray(s, idx)
-    local a = math.rad(Core.angle(idx))
-    local dx, dy = math.sin(a), math.cos(a)
-    local path, seen = {}, {}
-    local t = 0.6
-    while true do
-        local x, y = ORIGIN_X + dx * t, ORIGIN_Y + dy * t
-        if x < 0 or x >= COLS or y >= ROWS then return nil, nil, path end
-        local c, r = math.floor(x) + 1, math.floor(y) + 1
-        local i = (r - 1) * COLS + c
-        if s.board[i] ~= 0 then
-            local cx, cy = c - 0.5 - ORIGIN_X, r - 0.5 - ORIGIN_Y
-            return i, math.sqrt(cx * cx + cy * cy), path
-        end
-        if not seen[i] and r > 1 then seen[i] = true path[#path + 1] = i end
-        t = t + 0.05
-    end
-end
-
-function Core.setAim(s, idx) s.aim = math.max(1, math.min(STEPS, idx)) end
-
---- 点棋盘上的格子 -> 对应的发射角度序号。
-function Core.aimAt(r, c)
-    local dx, dy = c - 0.5 - ORIGIN_X, r - 0.5 - ORIGIN_Y
-    if dy <= 0 then return nil end
-    local deg = math.deg(math.atan2(dx, dy))
-    return math.max(1, math.min(STEPS, math.floor(deg / STEP_DEG + 0.5) + MID))
-end
-
---- 发射。返回 { hit=kind|nil, gain=, cost=, blown=, dyn= }。
-function Core.fire(s, rng)
-    if Core.levelOver(s) then return nil end
-    local i, dist = Core.ray(s, s.aim)
-    local res = { cost = MISS_COST, gain = 0 }
-    s.shots = s.shots + 1
-    if i then
-        local kind = s.board[i]
-        local def = KINDS[kind]
-        res.hit = kind
-        s.board[i] = 0
-        if s.armed and s.dyn > 0 then
-            s.dyn = s.dyn - 1
-            res.blown = true
-            res.cost = math.max(1, math.ceil(dist))
-        else
-            res.cost = math.max(1, math.ceil(dist * (1 + def.w)))
-            if kind == "bag" then
-                if rng:int(5) == 1 then
-                    s.dyn = s.dyn + 1
-                    res.dyn = 1
-                else
-                    res.gain = 50 * (1 + rng:int(6))
-                end
-            else
-                res.gain = def.value
-            end
-            s.money = s.money + res.gain
-        end
-        s.armed = false
-    end
-    s.time = s.time - res.cost
-    return res
-end
-
 function Core.nextLevel(s, rng)
+    if not s.cleared then return false end
     s.level = s.level + 1
-    s.dyn = s.dyn + 1
-    s.time = Core.budget(s)
-    s.armed = false
-    s.board = Core.genBoard(rng, s.level, s.money)
+    setupLevel(s, rng)
+    return true
 end
 
-local M = { id = "goldminer", title = T("黄金矿工"), icon = "paid", tier = "B", desc = T("选角度发射钩子，抓金子"), help = T("目标：在时间用完之前，让现金达到本关目标。\n点棋盘上的某处（或点 ◀ ▶）选择钩子的方向，小黑点是预计的路线，灰底格子是会被抓到的东西；按「发射」抓取。\n每次发射都要花时间：往返距离越远、东西越重，花得越多。大金块和石头很费时间，钻石又轻又值钱；没抓到东西也要花 3 点时间。\n「炸药」开启后，下一次抓到的东西会被炸掉，只花去程时间，适合甩掉石头。口袋（袋子）里可能是钱，也可能是一枚炸药。\n过关后现金保留，目标会提高，并奖励一枚炸药。"), core = Core }
+--- 当前钩子角度（弧度，0 为正下方，正为向右）。
+function Core.angle(s)
+    local deg = s.phase == "swing" and s.k * STEP_DEG or (s.ang or 0)
+    return math.rad(deg)
+end
+
+function Core.tip(s)
+    local a = Core.angle(s)
+    return AX + s.len * math.sin(a), AY + s.len * math.cos(a)
+end
+
+function Core.won(s) return s.money >= Core.target(s.level, s.mode) end
+
+--- 发射：只有摆动中才能发射。
+function Core.fire(s)
+    if s.over or s.cleared or s.phase ~= "swing" then return false end
+    s.phase, s.ang, s.len, s.event = "out", s.k * STEP_DEG, REST, nil
+    return true
+end
+
+--- 炸掉手里的东西，钩子空钩收回。
+function Core.blast(s)
+    if s.phase ~= "back" or not s.held or s.dyn <= 0 then return false end
+    s.dyn = s.dyn - 1
+    for i, o in ipairs(s.objs) do
+        if o == s.held then table.remove(s.objs, i) break end
+    end
+    s.held = nil
+    s.event = { kind = "blast" }
+    return true
+end
+
+local function hit(s)
+    local tx, ty = Core.tip(s)
+    local best, bd
+    for _, o in ipairs(s.objs) do
+        local d = dist(tx, ty, o.x, o.y)
+        if d <= o.r + HOOK_R and (not bd or d < bd) then best, bd = o, d end
+    end
+    return best
+end
+
+local function carry(s)
+    local o = s.held
+    if not o then return end
+    local a = Core.angle(s)
+    local tx, ty = Core.tip(s)
+    o.x, o.y = tx + math.sin(a) * o.r * 0.8, ty + math.cos(a) * o.r * 0.8
+end
+
+local function settle(s, rng)
+    s.phase, s.len = "swing", REST
+    s.k = math.max(-STEPS, math.min(STEPS, math.floor((s.ang or 0) / STEP_DEG + 0.5)))
+    local o = s.held
+    s.held = nil
+    if not o then return end
+    for i, x in ipairs(s.objs) do
+        if x == o then table.remove(s.objs, i) break end
+    end
+    local gain = KINDS[o.kind].value
+    if o.kind == "bag" then gain = 50 + 50 * rng:int(8) end
+    s.money = s.money + gain
+    s.event = { kind = "gain", value = gain, item = o.kind }
+end
+
+--- 前进一拍。返回 "swing" | "out" | "back" | "gain" | "miss" | "over" | "cleared" | "idle"
+function Core.tick(s, rng)
+    if s.over or s.cleared then return "idle" end
+    s.time = math.max(0, s.time - TICK)
+    local r = s.phase
+    if s.phase == "swing" then
+        s.k = s.k + s.dir
+        if s.k >= STEPS then s.k, s.dir = STEPS, -1
+        elseif s.k <= -STEPS then s.k, s.dir = -STEPS, 1 end
+    elseif s.phase == "out" then
+        for _ = 1, OUT_SPEED do
+            s.len = s.len + 1
+            local tx, ty = Core.tip(s)
+            local o = hit(s)
+            if o then
+                s.held, s.phase = o, "back"
+                carry(s)
+                break
+            end
+            if tx < 2 or tx > W - 2 or ty > H - 2 then s.phase = "back" break end
+        end
+        if s.phase == "back" then r = "back" end
+    else
+        local speed = s.held and KINDS[s.held.kind].speed or EMPTY_SPEED
+        s.len = s.len - speed
+        if s.len <= REST then
+            local had = s.held
+            settle(s, rng)
+            r = had and "gain" or "miss"
+        else
+            carry(s)
+        end
+    end
+    if s.time <= 0 and s.phase == "swing" then
+        if Core.won(s) then s.cleared = true r = "cleared" else s.over = true r = "over" end
+    end
+    return r
+end
+
+local M = { id = "goldminer", title = T("黄金矿工"), icon = "paid", tier = "C", desc = T("摆动的钩子，抓金子"),
+    help = T("经典黄金矿工：钩子会在矿工下方左右摆动，点屏幕任意处（或点「发射」）放出钩子，沿当前方向直线伸出。\n钩子碰到金块、钻石、钱袋或石头就抓住并拉回：大金块和石头很重，拉得很慢；小金块、钻石、钱袋拉得快。没抓到东西钩子会空收回。\n每关有倒计时，时间到时现金达到目标就过关（现金会带到下一关，目标逐关提高），否则游戏结束。\n每关有 2 枚炸药：拉着东西往回收时点「炸药」，炸掉手里的东西（不得分）并立刻空钩收回，适合甩掉石头。\n墨水屏每一拍都会刷新一次；可点「暂停」随时暂停，难度（休闲/标准/困难）在设置里选。"),
+    core = Core }
 
 function M.new(ctx)
     local self = {}
     local s
-    local last
+    local paused, handle, token = true, nil, 0
 
     local function persist() ctx:save({ state = s }) end
 
-    local function fresh(mode)
-        s = Core.fresh(ctx.rng, mode or (s and s.mode) or "normal")
-        last = nil
-        persist()
-        self.render()
+    local function halt()
+        token = token + 1
+        if handle then ctx.host:unschedule(handle) handle = nil end
     end
 
-    local function fire()
-        local res = Core.fire(s, ctx.rng)
-        if not res then return end
-        if not res.hit then
-            last = T("扑空了，花去 %d 时间", res.cost)
-        elseif res.blown then
-            last = T("炸掉了，花去 %d 时间", res.cost)
-        elseif res.dyn then
-            last = T("口袋里是炸药！花去 %d 时间", res.cost)
-        else
-            last = T("抓到 +%d，花去 %d 时间", res.gain, res.cost)
-        end
-        if Core.levelOver(s) and not Core.won(s) then
-            s.over = true
-            if ctx:record("level", s.level) then ctx:notify(T("新纪录：%d", s.level)) end
-        end
+    local function arm()
+        halt()
+        local mine = token
+        handle = ctx.host:schedule(TICK, function()
+            if mine ~= token or paused or s.over or s.cleared then return end
+            handle = nil
+            self.tick()
+        end)
+    end
+
+    local function finish()
+        halt()
+        paused = true
+        if s.over and ctx:record("level", s.level) then ctx:notify(T("新纪录：%d", s.level)) end
         persist()
-        self.render()
     end
 
     function self.render()
-        local over = Core.levelOver(s)
-        local won = over and Core.won(s)
-        local aim_i, _, path = Core.ray(s, s.aim)
-        local marks = {}
-        for _, i in ipairs(path) do marks[i] = true end
-        local status = T("第 %d 关    目标 %d    现金 %d    时间 %d    炸药 %d", s.level, Core.target(s.level), s.money, math.max(0, s.time), s.dyn)
+        local target = Core.target(s.level, s.mode)
+        local status = T("现金 %d / 目标 %d    时间 %d    第 %d 关    炸药 %d", s.money, target, math.ceil(s.time), s.level, s.dyn)
         local best = ctx:best("level")
-        if best then status = status .. T("    最高 %d 关", best) end
-        local line2 = last or ""
-        if over then
-            line2 = won and T("过关！") or T("时间到，现金不足，游戏结束")
-        end
+        if best then status = status .. T("    最高 %d 关", math.max(best, s.level)) end
+        if s.over then status = status .. T("    时间到，游戏结束")
+        elseif s.cleared then status = status .. T("    过关！")
+        elseif paused then status = status .. T("    已暂停") end
+        local ev = s.event
+        if ev and ev.kind == "gain" and not s.over and not s.cleared then status = status .. "    +" .. ev.value
+        elseif ev and ev.kind == "blast" and not s.over and not s.cleared then status = status .. T("    炸掉了") end
+
         local mode_row = {}
         for _, m in ipairs(MODES) do
-            mode_row[#mode_row + 1] = { text = T(m.label), selected = m.id == s.mode, callback = function() fresh(m.id) end }
+            mode_row[#mode_row + 1] = { text = T(m.label), selected = m.id == s.mode, callback = function() self.newGame(m.id) end }
         end
         local buttons
-        if over then
-            buttons = { { won and { text = T("下一关"), callback = function() Core.nextLevel(s, ctx.rng) last = nil persist() self.render() end }
-                or { text = T("重新开始"), callback = function() fresh() end } } }
+        if s.over then
+            buttons = { { { text = T("重新开始"), callback = function() self.newGame() end } } }
+        elseif s.cleared then
+            buttons = { { { text = T("下一关"), callback = function() self.nextLevel() end } } }
         else
             buttons = {
-                { { text = "◀", callback = function() Core.setAim(s, s.aim - 1) self.render() end },
-                    { text = T("发射"), callback = fire },
-                    { text = "▶", callback = function() Core.setAim(s, s.aim + 1) self.render() end } },
-                { { text = T("炸药 %d", s.dyn), selected = s.armed, enabled = s.dyn > 0, callback = function() s.armed = not s.armed persist() self.render() end } },
+                { { text = T("发射"), enabled = not paused and s.phase == "swing", callback = function() self.fire() end },
+                  { text = T("炸药 %d", s.dyn), enabled = not paused and s.phase == "back" and s.held ~= nil and s.dyn > 0,
+                    callback = function() self.blast() end } },
+                { { text = paused and (s.time >= modeOf(s.mode).time and T("开始") or T("继续")) or T("暂停"),
+                    callback = function() self.toggle() end },
+                  { menu = true, text = T("新游戏"), callback = function() self.newGame() end } },
             }
         end
-        if line2 ~= "" then table.insert(buttons, 1, { label = line2 }) end
-        buttons[#buttons + 1] = { { menu = true, text = T("新游戏"), callback = function() fresh() end } }
+
         ctx:render({
             title = T("黄金矿工"),
             status = status,
-            grid = {
-                rows = ROWS, cols = COLS,
-                cell = function(r, c)
-                    local i = (r - 1) * COLS + c
-                    if r == 1 and c == math.ceil(COLS / 2) then return { icon = "miner", icon_scale = 0.9 } end
-                    local k = s.board[i]
-                    if k ~= 0 then
-                        return { icon = k, icon_scale = 0.85, fill = (i == aim_i and not over) and "grey" or nil }
-                    end
-                    if marks[i] and not over then return { mark = "black" } end
-                end,
-                on_tap = function(r, c)
-                    local idx = Core.aimAt(r, c)
-                    if idx and not Core.levelOver(s) then
-                        s.aim = idx
-                        self.render()
-                    end
-                end,
+            canvas = {
+                w = W, h = H,
+                draw = function(d) self.draw(d, target) end,
+                on_tap = function() self.fire() end,
             },
-            settings = { groups = { { label = T("难度"), options = mode_row } }, reset = function() fresh() end },
+            settings = { groups = { { label = T("难度"), options = mode_row } }, reset = function() self.newGame() end },
             buttons = buttons,
         })
     end
 
-    function self.start()
-        local saved = ctx:load()
-        if saved and saved.state and saved.state.board and #saved.state.board == ROWS * COLS then
-            s = saved.state
+    function self.draw(d, target)
+        d.rect(0, GROUND, W, H - GROUND, "grey")
+        d.rect(0, GROUND - 0.8, W, 1.6, "black")
+        -- 矿工与绞盘
+        d.rect(30, 9, 6, 8, "dark")
+        d.circle(33, 7, 3, "dark")
+        d.rect(30, 3.5, 6, 1.6, "black")
+        d.rect(36, 13, 9, 3, "black")
+        d.rect(AX - 5, AY - 4, 10, 8, "black")
+        d.circle(AX, AY, 2, "white")
+        d.text("$" .. s.money, 16, 8, 5, "black")
+        d.text(T("目标 %d", target), 80, 4, 4, "dark")
+        d.text(tostring(math.ceil(s.time)) .. "s", 84, 11, 5, "black")
+        local function disc(o, fill, edge)
+            d.circle(o.x, o.y, o.r, edge)
+            d.circle(o.x, o.y, o.r - 0.9, fill)
+        end
+        for _, o in ipairs(s.objs) do
+            local k = o.kind
+            if k == "gold_l" or k == "gold_m" or k == "gold_s" then
+                disc(o, "black", "black")
+                d.circle(o.x - o.r * 0.35, o.y - o.r * 0.35, o.r * 0.25, "white")
+            elseif k == "stone" or k == "stone_s" then
+                disc(o, "dark", "black")
+                d.line(o.x - o.r * 0.4, o.y - o.r * 0.1, o.x + o.r * 0.2, o.y + o.r * 0.3, "black", 0.5)
+            elseif k == "diamond" then
+                d.text("◆", o.x, o.y, o.r * 3.2, "black")
+            else
+                disc(o, "white", "black")
+                d.text("$", o.x, o.y, o.r * 1.5, "black")
+            end
+        end
+        local tx, ty = Core.tip(s)
+        d.line(AX, AY, tx, ty, "black", 0.5)
+        local a = Core.angle(s)
+        for _, side in ipairs({ -1, 1 }) do
+            local b = a + side * 0.9
+            d.line(tx, ty, tx + math.sin(b) * 3.2, ty + math.cos(b) * 3.2, "black", 0.9)
+        end
+        d.circle(tx, ty, 1.2, "black")
+    end
+
+    function self.tick()
+        local r = Core.tick(s, ctx.rng)
+        if s.over or s.cleared then finish() else arm() end
+        self.render()
+        return r
+    end
+
+    function self.pause()
+        if paused then return end
+        paused = true
+        halt()
+        persist()
+    end
+
+    function self.resume()
+        if s.over or s.cleared or not paused then return end
+        paused = false
+        arm()
+    end
+
+    function self.toggle()
+        if s.over or s.cleared then return end
+        if paused then self.resume() else self.pause() end
+        self.render()
+    end
+
+    function self.fire()
+        if paused or not Core.fire(s) then return false end
+        persist()
+        self.render()
+        return true
+    end
+
+    function self.blast()
+        if paused or not Core.blast(s) then return false end
+        persist()
+        self.render()
+        return true
+    end
+
+    function self.nextLevel()
+        if Core.nextLevel(s, ctx.rng) then
+            paused = true
+            persist()
             self.render()
-        else
-            fresh("normal")
         end
     end
 
+    function self.newGame(mode)
+        halt()
+        paused = true
+        s = Core.fresh(ctx.rng, mode or (s and s.mode) or "normal")
+        persist()
+        self.render()
+    end
+
+    function self.start()
+        local saved = ctx:load()
+        if saved and saved.state and saved.state.objs and saved.state.phase then
+            s = saved.state
+            paused = true
+            self.render()
+        else
+            self.newGame("normal")
+        end
+    end
+
+    function self.stop()
+        if s and not s.over and not s.cleared then self.pause() else halt() end
+    end
+
     self.state = function() return s end
-    self.fire = fire
+    self.paused = function() return paused end
     return self
 end
 
