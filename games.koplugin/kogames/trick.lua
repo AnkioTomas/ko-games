@@ -413,14 +413,14 @@ function Core.define(spec)
                                 if s.landlord == 1 then d.icon("crown", 8, y - 0.5, 4.5) end
                             end
                             local a = s.shown[seat]
-                            if a == false then d.text(T("不要"), ln[2] == "right" and CW - 12 or 22, y + 7, 4.2, "dark")
+                            if a == false then d.text(T("不要"), ln[2] == "right" and CW - 12 or 22, y + 7, 3, "dark")
                             elseif a then drawPlayed(d, a, y, ln[2]) end
                         end
                         if s.phase == "bid" then
                             d.text(T("叫地主？"), CW / 2, 50, 6, "black")
                             for seat = 3, 2, -1 do
                                 if s.bids and s.bids[seat] == false then
-                                    d.text(T("不叫"), seat == 3 and 22 or CW - 12, seat == 3 and 33 or 50.5, 4.2, "dark")
+                                    d.text(T("不叫"), seat == 3 and 22 or CW - 12, seat == 3 and 33 or 50.5, 3, "dark")
                                 end
                             end
                         elseif s.phase == "done" then
