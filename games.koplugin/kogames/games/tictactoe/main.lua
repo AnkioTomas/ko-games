@@ -169,7 +169,7 @@ function M.new(ctx)
                 cell = function(r, c)
                     local i = (r - 1) * s.n + c
                     local v = s.board[i]
-                    if not v then return nil end
+                    if not v then return { fill = "grey" } end
                     return { text = v == 1 and "X" or "O", scale = 0.6, fill = hot[i] and "black" or "grey" }
                 end,
                 on_tap = tap,

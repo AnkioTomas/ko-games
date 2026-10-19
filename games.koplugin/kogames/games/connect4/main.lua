@@ -184,12 +184,12 @@ function M.new(ctx)
             title = T("四子棋"),
             status = status,
             grid = {
-                rows = ROWS, cols = COLS, on_tap = tap,
+                rows = ROWS, cols = COLS, gap = true, on_tap = tap,
                 cell = function(r, c)
                     local v = s.board[(r - 1) * COLS + c]
                     if v == HUMAN then return { icon = "stone_black", icon_scale = 0.85 } end
                     if v == AI then return { icon = "stone_white", icon_scale = 0.85 } end
-                    return {}
+                    return { shape = "white" }
                 end,
             },
             buttons = {

@@ -398,7 +398,7 @@ function M.new(ctx)
             title = T("中国象棋"),
             status = statusText(),
             grid = {
-                rows = ROWS, cols = COLS, ratio = 1, style = "go", on_tap = tap,
+                rows = ROWS, cols = COLS, ratio = 1, style = "xq", on_tap = tap,
                 cell = function(r, c)
                     local i = idx(r, c)
                     local p = s.board[i]

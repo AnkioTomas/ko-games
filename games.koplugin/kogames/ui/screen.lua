@@ -235,17 +235,48 @@ function Board:paintTo(bb, x, y)
     else
         bb:paintRect(x, y, self.dimen.w, self.dimen.h, g.gap and Blitbuffer.Color8(0xF2) or white)
     end
-    local go = g.style == "go"
+    local xq = g.style == "xq"
+    local go = g.style == "go" or xq
     if go then
         local half = math.floor(cs / 2)
         local lw = math.max(1, math.floor(px(1)))
         for i = 0, g.cols - 1 do
             local edge = i == 0 or i == g.cols - 1
-            bb:paintRect(x + i * cs + half - (edge and 1 or 0), y + half, edge and lw + 2 or lw, (g.rows - 1) * cs + 1, ink)
+            local vx, vw = x + i * cs + half - (edge and 1 or 0), edge and lw + 2 or lw
+            if xq and not edge then
+                -- 象棋：中间的竖线在楚河处断开
+                local mid = (g.rows / 2) - 1
+                bb:paintRect(vx, y + half, vw, mid * cs + 1, ink)
+                bb:paintRect(vx, y + half + (mid + 1) * cs, vw, (g.rows - 2 - mid) * cs + 1, ink)
+            else
+                bb:paintRect(vx, y + half, vw, (g.rows - 1) * cs + 1, ink)
+            end
         end
         for i = 0, g.rows - 1 do
             local edge = i == 0 or i == g.rows - 1
             bb:paintRect(x + half, y + i * cs + half - (edge and 1 or 0), (g.cols - 1) * cs + 1, edge and lw + 2 or lw, ink)
+        end
+        if xq then
+            local function diag(c1, r1, c2, r2)
+                local x1, y1 = x + c1 * cs + half, y + r1 * cs + half
+                local dx, dy = c2 > c1 and 1 or -1, 1
+                for k = 0, 2 * cs do
+                    bb:paintRect(x1 + dx * k, y1 + dy * k, lw, lw, ink)
+                end
+            end
+            local c0 = math.floor(g.cols / 2) - 1
+            for _, r0 in ipairs({ 0, g.rows - 3 }) do
+                diag(c0, r0, c0 + 2, r0 + 2)
+                diag(c0 + 2, r0, c0, r0 + 2)
+            end
+            local sz = math.floor(cs * 0.5)
+            local mid = g.rows / 2 - 1
+            for k, word in ipairs({ "楚河", "汉界" }) do
+                local w = self:text(word, sz, "black")
+                local ws = w:getSize()
+                local cx = k == 1 and 2 or g.cols - 3
+                w:paintTo(bb, x + cx * cs + half - math.floor(ws.w / 2), y + (mid + 0.5) * cs + half - math.floor(ws.h / 2))
+            end
         end
         for _, p in ipairs(g.stars or {}) do
             bb:paintCircle(x + (p[2] - 1) * cs + half, y + (p[1] - 1) * cs + half, math.max(3, math.floor(cs * 0.09)), ink)
