@@ -289,7 +289,7 @@ function Core.define(spec)
             self.render()
         end
 
-        local CW, CH = 100, 108
+        local CW, CH = 100, 111
         local CARD_W, CARD_H = 11, 17
         local PW, PH = 9, 13.5
 
@@ -302,12 +302,12 @@ function Core.define(spec)
             local ink = selected and "white" or "black"
             local cx = x + 3.3
             if v >= 16 then
-                d.text(v == 16 and "小" or "大", cx, y + 3.4, 2.6, ink)
-                d.text("王", cx, y + 6.6, 2.6, ink)
+                d.icon(v == 16 and "joker_small" or "joker_big", cx, y + 5.5, 5.5)
+                if v == 17 then d.icon("crown", cx, y + 11, 3.4) end
                 return
             end
             local rank = R.rankText(v)
-            d.text(rank, cx, y + 3.4, #rank > 1 and 2.9 or 3.6, ink)
+            d.text(rank, cx, y + 3.2, #rank > 1 and 2.4 or 3.0, ink)
             d.icon("suit_" .. R.SUIT_ICONS[R.suit(id)] .. (selected and "_w" or ""), cx, y + 8.2, 3.2)
         end
 
@@ -346,7 +346,7 @@ function Core.define(spec)
                 local k = row == 1 and i or i - per
                 local cnt = row == 1 and per or n - per
                 local width = CARD_W + (cnt - 1) * step
-                pos[i] = { x = (CW - width) / 2 + (k - 1) * step, y = rows == 1 and 88 or (row == 1 and 74 or 87) }
+                pos[i] = { x = (CW - width) / 2 + (k - 1) * step, y = rows == 1 and 91 or (row == 1 and 80 or 92) }
             end
             return pos
         end
@@ -390,7 +390,6 @@ function Core.define(spec)
             end
             rows[#rows + 1] = { { menu = true, text = T("新游戏"), callback = fresh } }
 
-            local st = ctx.host:load("stats_" .. ctx.id)
             ctx:render({
                 title = spec.title,
                 canvas = {
@@ -404,36 +403,33 @@ function Core.define(spec)
                         elseif s.mode == "ddz" then
                             d.text("×" .. s.mult, CW / 2, 10, 3.8, "black")
                         end
-                        d.frame(1, 23, CW - 2, 64, "dark", 0.4)
+                        d.frame(1, 23, CW - 2, 54, "dark", 0.4)
                         local lines = { { 3, "left" }, { 2, "right" }, { 1, "center" } }
                         for k, ln in ipairs(lines) do
-                            local y = 26 + (k - 1) * 20
+                            local y = 26 + (k - 1) * 17.5
                             local seat = ln[1]
                             if seat == 1 then
                                 d.icon("person", 8, y + 7, 8)
                                 if s.landlord == 1 then d.icon("crown", 8, y - 0.5, 4.5) end
                             end
                             local a = s.shown[seat]
-                            if a == false then d.icon("cross", ln[2] == "right" and CW - 10 or 21, y + 7, 7)
+                            if a == false then d.text(T("不要"), ln[2] == "right" and CW - 12 or 22, y + 7, 4.2, "dark")
                             elseif a then drawPlayed(d, a, y, ln[2]) end
                         end
                         if s.phase == "bid" then
-                            d.text(T("叫地主？"), CW / 2, 45, 6, "black")
+                            d.text(T("叫地主？"), CW / 2, 50, 6, "black")
                             for seat = 3, 2, -1 do
                                 if s.bids and s.bids[seat] == false then
-                                    d.icon("cross", seat == 3 and 21 or CW - 10, seat == 3 and 33 or 53, 7)
+                                    d.text(T("不叫"), seat == 3 and 22 or CW - 12, seat == 3 and 33 or 50.5, 4.2, "dark")
                                 end
                             end
                         elseif s.phase == "done" then
-                            d.rect(CW / 2 - 24, 36, 48, 26, "white")
-                            d.frame(CW / 2 - 24, 36, 48, 26, "black", 0.7)
-                            d.text(Core.humanWon(s) and T("你赢了！") or T("你输了"), CW / 2, 45, 6.5, "black")
+                            d.rect(CW / 2 - 24, 34, 48, 26, "white")
+                            d.frame(CW / 2 - 24, 34, 48, 26, "black", 0.7)
+                            d.text(Core.humanWon(s) and T("你赢了！") or T("你输了"), CW / 2, 43, 6.5, "black")
                             if s.mode == "ddz" then
-                                d.text("×" .. s.mult .. (s.spring and T("（春天）") or ""), CW / 2, 55, 4, "black")
+                                d.text("×" .. s.mult .. (s.spring and T("（春天）") or ""), CW / 2, 53, 4, "black")
                             end
-                        end
-                        if st and st.games then
-                            d.text((T("    胜 %d / %d", st.wins or 0, st.games):gsub("^%s+", "")), CW - 14, 82.3, 2.8, "dark")
                         end
                         for i, id in ipairs(disp) do
                             local q = pos[i]
