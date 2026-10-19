@@ -21,6 +21,11 @@ end
 
 function Ctx:render(view)
     view.assets = view.assets or self.def.assets
+    view.on_pause = view.on_pause or function()
+        if not self.pause_game then return end
+        self.pause_game()
+        if self.render_game then self.render_game() return self.host.widget end -- 重绘后弹窗里的「暂停/继续」文案才是新的
+    end
     view.on_close = view.on_close or function() if self.on_closed then self.on_closed() end end
     view.back = view.back or function() self:exit() end
     local help_pending

@@ -39,6 +39,7 @@ end
 function Registry.launch(host, def, exit)
     local ctx = require("kogames.ctx").new(host, def, exit)
     local game = def.new(ctx)
+    ctx.pause_game, ctx.render_game = game.pause, game.render
     ctx.on_closed = function() if game.stop then game.stop() end end
     game.start()
     return game

@@ -17,6 +17,7 @@ view = {
                                                -- d.text(s,x,y,size,c) 居中 d.icon(name,x,y,size) 居中；c = "black"|"dark"|"grey"|"white"
     on_tap = function(x, y) end,               -- 虚拟坐标
   },
+  on_pause = function() end,                   -- 打开设置弹窗前调用（ctx 自动接到游戏的 pause）
   on_swipe = function(dir) end,                -- dir = "north"|"south"|"east"|"west"
   -- 按钮项可带 icon = "名称"（SVG，居中显示，替代文字）
   buttons = { { {text=, callback=, enabled=, selected=}, ... } 一行, { label = "分组标题" } },
@@ -684,16 +685,22 @@ end
 function GameScreen:showHelp()
     local h = self.view.help
     if not h then return true end
+    if self.view.on_pause then self.view.on_pause() end
     local InfoMessage = require("ui/widget/infomessage")
     UIManager:show(InfoMessage:new{ text = (h.title or "") .. "\n\n" .. h.text, width = math.floor(Screen:getWidth() * 0.86) })
     return true
 end
 
 -- 设置弹窗：选项分组 + 玩法 + 开始/关闭；intro 为 true（首次进入）时顶部显示玩法说明
-function GameScreen:showSettings(intro)
+function GameScreen:showSettings(intro, paused)
     local v = self.view
     local st = v.settings
     if not st then return true end
+    -- 先暂停实时游戏：否则每拍重绘的新界面会盖住弹窗
+    if v.on_pause and not paused then
+        local nw = v.on_pause()
+        if nw and nw ~= self and nw.showSettings then return nw:showSettings(intro, true) end
+    end
     local k = kit()
     local W = Screen:getWidth()
     local w = math.floor(W * 0.88)
