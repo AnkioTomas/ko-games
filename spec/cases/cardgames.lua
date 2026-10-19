@@ -110,6 +110,55 @@ return function(t)
         assert(Trick.pass(d, 1))
     end)
 
+    test("cardrules: four-with-two rejects rocket wings; pdk short last plane is enumerated", function()
+        assert(not parse({ 7, 7, 7, 7, 16, 17 }))
+        local hand = cards({ 5, 5, 5, 9 })
+        local found
+        for _, pl in ipairs(R.plays(hand, { pdk = true })) do if #pl.cards == 4 then found = true end end
+        assert(found)
+        local s = Trick.deal(Rng.new(1), "pdk")
+        s.turn, s.first, s.passes = 1, nil, 0
+        s.hands[1] = hand
+        s.last = { seat = 3, p = R.parse(cards({ 4, 4, 4, 8, 8 }), { pdk = true }), cards = cards({ 4, 4, 4, 8, 8 }) }
+        assert(Trick.canBeat(s, 1) and not Trick.pass(s, 1) and Trick.play(s, 1, hand))
+    end)
+
+    test("trick: pdk single must be the biggest when next player has one card", function()
+        local s = Trick.deal(Rng.new(1), "pdk")
+        s.turn, s.first, s.last = 1, nil, nil
+        s.hands[1] = cards({ 4, 9, 13 })
+        s.hands[2] = cards({ 6 })
+        local ok, err = Trick.play(s, 1, { cards({ 4 })[1] })
+        assert(not ok and err)
+        assert(Trick.play(s, 1, { cards({ 13 })[1] }))
+        s.turn, s.last = 1, nil
+        s.hands[1] = cards({ 4, 4, 9 })
+        assert(Trick.play(s, 1, cards({ 4, 4 })))
+        local o = Trick.aiOpts(s, 3)
+        s.hands[3] = cards({ 4, 9, 13 })
+        s.hands[1] = cards({ 6 })
+        s.turn, s.last = 3, nil
+        o = Trick.aiOpts(s, 3)
+        assert(o.mustMax)
+        local pick = R.aiChoose(s.hands[3], o)
+        assert(#pick == 1 and R.value(pick[1]) == 13)
+    end)
+
+    test("trick: landlord's 20 cards are all visible in the grid", function()
+        H.saved, H.view = {}, nil
+        local def = require("kogames.games.doudizhu.main")
+        local g = require("kogames.registry").launch(H.host, def, nil)
+        local s = g.state()
+        s.phase, s.landlord, s.turn, s.last, s.bottom = "play", 1, 1, nil, s.bottom or {}
+        local all = {}
+        for i = 1, 20 do all[i] = i end
+        s.hands[1] = all
+        g.render()
+        local grid, n = H.view.grid, 0
+        for r = 4, grid.rows do for c = 1, grid.cols do if grid.cell(r, c) then n = n + 1 end end end
+        assert(n == 20, n)
+    end)
+
     test("trick: sessions render and complete via hint", function()
         for _, id in ipairs({ "doudizhu", "paodekuai" }) do
             H.saved, H.view = {}, nil

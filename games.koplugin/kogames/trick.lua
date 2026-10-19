@@ -68,6 +68,11 @@ function Core.canBeat(s, seat)
     return false
 end
 
+--- 跑得快：下家只剩一张（报单）时，出单张必须出最大的。
+function Core.mustMax(s, seat)
+    return s.mode == "pdk" and #s.hands[nextSeat(seat)] == 1
+end
+
 --- 校验并解析一手牌：返回牌型或 nil, 原因。
 function Core.validate(s, seat, cards)
     if s.phase ~= "play" or s.turn ~= seat then return nil, T("还没轮到你") end
@@ -82,6 +87,11 @@ function Core.validate(s, seat, cards)
         if not ok then return nil, T("首手必须带黑桃 3") end
     end
     if not R.beats(p, s.last and s.last.p) then return nil, T("压不过上一手") end
+    if p.type == "single" and Core.mustMax(s, seat) then
+        local top = 0
+        for _, id in ipairs(s.hands[seat]) do top = math.max(top, R.value(id)) end
+        if p.key < top then return nil, T("下家报单，单张必须出最大的") end
+    end
     return p
 end
 
@@ -145,6 +155,7 @@ function Core.aiOpts(s, seat)
         end
     end
     o.oppMin = oppMin
+    o.mustMax = Core.mustMax(s, seat)
     if s.mode == "ddz" and s.last and s.last.seat ~= seat and seat ~= s.landlord and s.last.seat ~= s.landlord then
         o.teammate = true
     end
@@ -164,7 +175,12 @@ function Core.aiAct(s, seat)
         if ok then return end
     end
     if s.last then
-        Core.pass(s, seat)
+        if not Core.pass(s, seat) then
+            -- 兜底：必须出却没选出牌时，随便出一手能压的
+            for _, pl in ipairs(R.plays(s.hands[seat], Core.opts(s))) do
+                if Core.play(s, seat, pl.cards) then return end
+            end
+        end
     else
         Core.play(s, seat, { s.hands[seat][1] })
     end
@@ -221,7 +237,7 @@ function Core.define(spec)
     function M.new(ctx)
         local self = {}
         local s, sel = nil, {}
-        local cols = 9
+        local cols = spec.mode == "ddz" and 10 or 9
 
         local function persist() ctx:save({ state = s }) end
 
@@ -303,6 +319,9 @@ function Core.define(spec)
             local status
             if s.phase == "bid" then
                 status = T("叫地主？")
+                for seat = 3, 2, -1 do
+                    if s.bids and s.bids[seat] == false then status = status .. "    " .. who(seat) .. T("不叫") end
+                end
             elseif s.phase == "done" then
                 local won = Core.humanWon(s)
                 status = won and T("你赢了！") or T("你输了")

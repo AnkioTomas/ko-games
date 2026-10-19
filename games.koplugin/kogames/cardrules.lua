@@ -96,7 +96,7 @@ function R.parse(cards, opts)
                 rem[v] = nil
                 local evenRest = true
                 for _, c in pairs(rem) do if c % 2 == 1 then evenRest = false end end
-                if rest == 2 then return res("four2", v) end
+                if rest == 2 and not (cnt[16] and cnt[17]) then return res("four2", v) end
                 if rest == 4 and evenRest then return res("four22", v) end
             end
         end
@@ -156,6 +156,13 @@ function R.plays(hand, o)
         local p = R.parse(cards, { pdk = o.pdk, all = #cards == #hand })
         if p then out[#out + 1] = { cards = cards, p = p } end
     end
+    -- 跑得快最后一手可以少带：把剩下的牌全带上
+    local function others(main)
+        local inMain, t = {}, {}
+        for _, id in ipairs(main) do inMain[id] = true end
+        for _, id in ipairs(hand) do if not inMain[id] then t[#t + 1] = id end end
+        return t
+    end
     local function take(v, n)
         local t = {}
         for i = 1, n do t[i] = byv[v][i] end
@@ -170,6 +177,7 @@ function R.plays(hand, o)
             add(main)
             if o.pdk then
                 add(concat(main, pickSingles(byv, vals, excl, 2)))
+                add(concat(main, others(main)))
             else
                 add(concat(main, pickSingles(byv, vals, excl, 1)))
                 add(concat(main, pickPairs(byv, vals, excl, 1)))
@@ -218,6 +226,7 @@ function R.plays(hand, o)
         add(main)
         if o.pdk then
             add(concat(main, pickSingles(byv, vals, excl, 2 * k)))
+            add(concat(main, others(main)))
         else
             add(concat(main, pickSingles(byv, vals, excl, k)))
             add(concat(main, pickPairs(byv, vals, excl, k)))
@@ -241,8 +250,12 @@ function R.aiChoose(hand, o)
     local plays = R.plays(hand, o)
     local last = o.last
     local list = {}
+    local top = 0
+    for _, id in ipairs(hand) do top = math.max(top, R.value(id)) end
     for _, pl in ipairs(plays) do
         local ok = R.beats(pl.p, last)
+        -- 下家报单：出单张必须出最大的
+        if ok and o.mustMax and pl.p.type == "single" and pl.p.key < top then ok = false end
         if ok and o.first then
             ok = false
             for _, id in ipairs(pl.cards) do if id == 1 then ok = true end end
