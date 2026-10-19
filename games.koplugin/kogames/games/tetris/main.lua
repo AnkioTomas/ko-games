@@ -171,10 +171,9 @@ function M.new(ctx)
         end)
     end
 
+    local U, CW, CH = 5, 80, 92
+
     function self.render()
-        local best = math.max(ctx:best("best") or 0, s.score)
-        local status = (T("得分 %d  最高 %d  等级 %d  行 %d")):format(s.score, best, Core.level(s), s.lines)
-        if s.over then status = status .. T("  游戏结束") elseif paused then status = status .. T("  已暂停") end
         local cur, ghost = {}, {}
         if not s.over then
             local p = s.cur
@@ -189,16 +188,55 @@ function M.new(ctx)
             sp[#sp + 1] = { text = tostring(n), selected = n == s.base, callback = function() self.setBase(n) end }
         end
         local live = not paused and not s.over
+        local best = math.max(ctx:best("best") or 0, s.score)
         ctx:render({
             title = T("俄罗斯方块"),
-            status = status,
-            grid = {
-                rows = s.h, cols = s.w, gap = true, slots = true,
-                cell = function(r, c)
-                    local i = (r - 1) * s.w + c
-                    if cur[i] then return { fill = "black" } end
-                    if s.board[i] ~= 0 then return { fill = "raised" } end
-                    if ghost[i] then return { fill = "grey" } end
+            canvas = {
+                w = CW, h = CH,
+                draw = function(d)
+                    local x0, y0 = 1, 1
+                    d.frame(x0 - 0.5, y0 - 0.5, s.w * U + 1, s.h * U + 1, "black", 0.7)
+                    for r = 1, s.h do
+                        for c = 1, s.w do
+                            local i = (r - 1) * s.w + c
+                            local x, y = x0 + (c - 1) * U, y0 + (r - 1) * U
+                            if cur[i] then
+                                d.rect(x + 0.2, y + 0.2, U - 0.4, U - 0.4, "black")
+                            elseif s.board[i] ~= 0 then
+                                d.rect(x + 0.2, y + 0.2, U - 0.4, U - 0.4, "dark")
+                                d.frame(x + 0.2, y + 0.2, U - 0.4, U - 0.4, "black", 0.35)
+                            elseif ghost[i] then
+                                d.frame(x + 0.4, y + 0.4, U - 0.8, U - 0.8, "dark", 0.35)
+                            else
+                                d.rect(x + 2, y + 2, 1, 1, "grey")
+                            end
+                        end
+                    end
+                    if s.over or paused then
+                        d.rect(x0 + 8, y0 + 34, 34, 22, "white")
+                        d.frame(x0 + 8, y0 + 34, 34, 22, "black", 0.7)
+                        d.icon(s.over and "restart" or "play", x0 + 25, y0 + 45, 14)
+                    end
+                    local px = x0 + s.w * U + 4
+                    d.frame(px, 1, 24, 22, "black", 0.5)
+                    local cells = Core.cells(s.next, 0)
+                    local minc, maxc = 9, 0
+                    for _, q in ipairs(cells) do minc = math.min(minc, q[2]) maxc = math.max(maxc, q[2]) end
+                    local ox = px + 12 - (minc + maxc + 1) * 2.5 / 2 * 1.2
+                    for _, q in ipairs(cells) do
+                        d.rect(ox + q[2] * 3, 6 + q[1] * 3, 2.8, 2.8, "black")
+                    end
+                    d.text(tostring(s.score), px + 12, 32, 5, "black")
+                    d.text("Lv " .. Core.level(s), px + 12, 41, 3.4, "dark")
+                    d.text("Ln " .. s.lines, px + 12, 48, 3.4, "dark")
+                    d.text("HI " .. best, px + 12, 55, 3.4, "dark")
+                end,
+                on_tap = function(x)
+                    if s.over then self.newGame() return end
+                    if paused then self.toggle() return end
+                    if x < 1 + s.w * U / 3 then self.left()
+                    elseif x > 1 + s.w * U * 2 / 3 then self.right()
+                    else self.rotate() end
                 end,
             },
             on_swipe = function(d)
@@ -207,19 +245,14 @@ function M.new(ctx)
             end,
             settings = { groups = { { label = T("速度"), options = sp } }, reset = function() self.newGame() end },
             buttons = {
-                { label = T("下一个：%s", s.next or "") },
                 {
-                    { text = "←", enabled = live, callback = function() self.left() end },
-                    { text = T("旋转"), enabled = live, callback = function() self.rotate() end },
-                    { text = "→", enabled = live, callback = function() self.right() end },
+                    { icon = "left", enabled = live, callback = function() self.left() end },
+                    { icon = "rotate", enabled = live, callback = function() self.rotate() end },
+                    { icon = "right", enabled = live, callback = function() self.right() end },
+                    { icon = "drop", enabled = live, callback = function() self.hard() end },
                 },
                 {
-                    { text = T("下移"), enabled = live, callback = function() self.soft() end },
-                    { text = T("落底"), enabled = live, callback = function() self.hard() end },
-                },
-                {
-                    { text = s.over and T("再来一局") or (paused and (s.lines == 0 and s.score == 0 and T("开始") or T("继续")) or T("暂停")),
-                        callback = s.over and function() self.newGame() end or function() self.toggle() end },
+                    { menu = true, text = paused and T("继续") or T("暂停"), enabled = not s.over, callback = function() self.toggle() end },
                     { menu = true, text = T("新游戏"), callback = function() self.newGame() end },
                 },
             },

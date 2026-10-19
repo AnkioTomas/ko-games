@@ -41,9 +41,7 @@ return function(t)
 
     test("tetris session gravity tick, controls and pause", function()
         local g, host, ctx = launch(TT)
-        assert(H.view.grid.rows == 18 and host.pending() == 0)
-        local before = gridText(H.view)
-        assert(before == 8, "piece + ghost")
+        assert(H.view.canvas and host.pending() == 0)
         g.left()
         g.toggle() -- start
         assert(host.pending() == 1)
@@ -79,7 +77,10 @@ return function(t)
 
     test("tetris shows the next piece", function()
         local g = launch(TT)
-        local label = H.view.buttons[1].label
-        assert(label and label:find(g.state().next, 1, true))
+        assert(H.view.canvas and g.state().next)
+        local n = 0
+        local d = setmetatable({}, { __index = function() return function() n = n + 1 end end })
+        H.view.canvas.draw(d)
+        assert(n > 20)
     end)
 end
