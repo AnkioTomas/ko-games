@@ -374,8 +374,25 @@ function Core.aiMove(pos, level, rng, seconds)
     return best
 end
 
+local function posKey(p)
+    return table.concat(p.b, ",") .. (p.turn > 0 and "w" or "b") .. (p.wk and "K" or "") .. (p.wq and "Q" or "")
+        .. (p.bk and "k" or "") .. (p.bq and "q" or "") .. (p.ep or "")
+end
+
+--- 当前局面（轮到玩家时）在历史中是否已出现三次
+local function threefold(s)
+    if s.pos.turn ~= WHITE then return false end
+    local key, n = posKey(s.pos), 1
+    for _, h in ipairs(s.history) do
+        if h.pos.turn == WHITE and posKey(h.pos) == key then n = n + 1 end
+    end
+    return n >= 3
+end
+Core.threefold = threefold
+
 local function finish(s)
     local res, why = Core.status(s.pos)
+    if not res and threefold(s) then res, why = "draw", "repetition" end
     s.over, s.result, s.reason = res ~= nil, res, why
 end
 
@@ -480,6 +497,7 @@ function M.new(ctx)
             elseif s.result == "loss" then status = T("你被将死了")
             elseif s.reason == "stalemate" then status = T("无棋可走，和棋")
             elseif s.reason == "fifty" then status = T("五十步无进展，和棋")
+            elseif s.reason == "repetition" then status = T("三次重复局面，和棋")
             else status = T("子力不足，和棋") end
         elseif s.pending then status = T("选择升变的棋子")
         elseif Core.inCheck(pos, WHITE) then status = T("你被将军了！")

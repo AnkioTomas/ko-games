@@ -102,4 +102,15 @@ return function(t)
         local b = H.saved.chess.state.pos.b
         assert(b[1] == 2 and H.saved.chess.state.pending == nil)
     end)
+
+    test("chess threefold repetition is a draw", function()
+        local s = C.newState(1)
+        s.pos = fen("4k2n/8/8/8/8/8/8/4K2N w -")
+        local snap = { pos = s.pos }
+        assert(not C.threefold(s))
+        s.history = { snap, { pos = fen("4k2n/8/8/8/8/8/8/4K2N w -") } }
+        assert(C.threefold(s))
+        s.history = { snap }
+        assert(not C.threefold(s))
+    end)
 end
