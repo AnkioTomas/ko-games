@@ -200,12 +200,12 @@ function Core.cardCell(id, selected)
     local v = R.value(id)
     local cell
     if v >= 16 then
-        cell = { text = v == 16 and T("小王") or T("大王"), scale = 0.26, fill = "grey" }
+        cell = { text = v == 16 and T("小王") or T("大王"), scale = 0.19, fill = "grey" }
         if selected then cell.fill, cell.color = "black", "white" end
         return cell
     end
     local su = R.suit(id)
-    cell = { rank = R.rankText(v), icon = "suit_" .. R.SUIT_ICONS[su], scale = 0.36 }
+    cell = { rank = R.rankText(v), icon = "suit_" .. R.SUIT_ICONS[su], scale = 0.2 }
     if selected then
         cell.fill, cell.color, cell.icon = "black", "white", cell.icon .. "_w"
     elseif RED[su] then
