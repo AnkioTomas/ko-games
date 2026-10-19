@@ -74,7 +74,7 @@ end
 
 local M = { id = "flappy", title = T("像素鸟"), icon = "timeline", tier = "C",
     desc = T("点一下拍翅膀，穿过绿管"), core = Core, INTERVAL = INTERVAL,
-    help = T("小鸟会不断下落，点一下屏幕让它向上冲，穿过上下两根绿管之间的缺口。\n每穿过一对管子得 1 分；碰到管子、落到地面或飞出顶部则游戏结束。\n点屏幕开始，可随时暂停；可在设置中选择难度（缺口越小、速度越快越难）。\n墨水屏每一拍刷新一次，请预判下一拍的位置。") }
+    help = T("小鸟会不断下落，点一下屏幕让它向上冲，穿过上下两根绿管之间的缺口。\n每穿过一对管子得 1 分；碰到管子、落到地面或飞出顶部则游戏结束。\n点屏幕开始；结束后点屏幕重来。暂停、新游戏和难度（缺口越小、速度越快越难）都在设置里。\n墨水屏每一拍刷新一次，请预判下一拍的位置。") }
 
 function M.new(ctx)
     local self = {}
@@ -99,6 +99,9 @@ function M.new(ctx)
 
     local function draw(d)
         d.frame(0, 0, W, H, "black", 0.8)
+        for i, cy in ipairs({ 30, 60, 90 }) do
+            d.icon("cloud", (i * 53 - s.ticks * 1.5) % 130 - 15, cy, 14)
+        end
         d.rect(0, GROUND, W, H - GROUND, "black")
         d.rect(0, GROUND, W, 2, "dark")
         for _, p in ipairs(s.pipes) do
@@ -114,21 +117,12 @@ function M.new(ctx)
             end
         end
         local y = s.y
-        d.circle(BIRD_X, y, BIRD_R + 1, "black")
-        d.circle(BIRD_X, y, BIRD_R - 0.5, "grey")
-        d.rect(BIRD_X - 5, y + (s.vy < 0 and 0 or -1), 4, 3, "dark") -- 翅膀
-        d.circle(BIRD_X + 2, y - 1.5, 1.8, "white")
-        d.circle(BIRD_X + 2.6, y - 1.5, 0.9, "black")
-        d.rect(BIRD_X + BIRD_R, y - 0.5, 4, 2.5, "black") -- 喙
+        d.icon(s.vy < 0 and "bird_up" or "bird_down", BIRD_X, y, 14)
         d.text(tostring(s.score), W / 2, 14, 9, "black")
-        local best = math.max(ctx:best("best") or 0, s.score)
-        d.text(T("最高 %d", best), W / 2, 26, 3.5, "dark")
         if s.over then
-            d.rect(20, 52, 60, 24, "white")
-            d.frame(20, 52, 60, 24, "black", 1)
-            d.text(T("游戏结束"), W / 2, 64, 5, "black")
-        elseif not started then
-            d.text(T("点屏幕开始"), W / 2, 100, 4.5, "black")
+            d.rect(34, 52, 32, 24, "white")
+            d.frame(34, 52, 32, 24, "black", 1)
+            d.icon("restart", W / 2, 64, 16)
         end
     end
 
@@ -142,9 +136,9 @@ function M.new(ctx)
             canvas = { w = W, h = H, draw = draw, on_tap = function() self.tap() end },
             settings = { groups = { { label = T("难度"), options = lv } }, reset = function() self.newGame() end },
             buttons = { {
-                { text = paused and started and not s.over and T("继续") or T("暂停"),
+                { menu = true, text = paused and started and not s.over and T("继续") or T("暂停"),
                   enabled = started and not s.over, callback = function() self.toggle() end },
-                { text = T("重来"), callback = function() self.newGame() end },
+                { menu = true, text = T("新游戏"), callback = function() self.newGame() end },
             } },
         })
     end
@@ -164,7 +158,7 @@ function M.new(ctx)
     end
 
     function self.tap()
-        if s.over then return end
+        if s.over then self.newGame() return end
         Core.flap(s)
         if paused then
             paused, started = false, true
