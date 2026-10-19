@@ -101,7 +101,7 @@ return function(t)
 
     test("dino session ticks, saves and restores", function()
         local g, host, ctx = launch(D)
-        assert(H.view.canvas and #H.view.buttons[1] == 3)
+        assert(H.view.canvas and #H.view.buttons == 0 and #H.view.settings.actions == 2)
         assert(host.pending() == 0, "waits for start")
         H.view.canvas.on_tap(10, 10) -- 起跳并开始
         assert(host.pending() == 1 and not g.paused())
@@ -122,10 +122,12 @@ return function(t)
         host.advance(5)
         assert(g.state().over and host.pending() == 0)
         assert(H.saved["stats_dino"].best >= 140)
-        assert(H.view.buttons[1][3].text == "重来")
-        local d = { rect = function() end, text = function() end }
+        local icons = {}
+        local d = { rect = function() end, text = function() end, icon = function(n) icons[#icons + 1] = n end }
         H.view.canvas.draw(d)
-        H.view.buttons[1][3].callback()
+        local seen = table.concat(icons, ",")
+        assert(seen:find("dino_dead") and seen:find("restart") and seen:find("cactus_big"), seen)
+        H.view.canvas.on_tap(10, 10)
         assert(not g.state().over and g.state().dist == 0)
     end)
 
@@ -135,5 +137,13 @@ return function(t)
         g.toggle()
         host.advance(D.INTERVALS[3] + 0.01)
         assert(g.state().ticks == 1 and g.state().level == 3)
+    end)
+
+    test("dino swipe down ducks and swipe up jumps", function()
+        local g = launch(D)
+        H.view.on_swipe("south")
+        assert(g.state().duckReq and not g.paused())
+        H.view.on_swipe("north")
+        assert(g.state().jumpReq)
     end)
 end

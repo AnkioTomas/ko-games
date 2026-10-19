@@ -1,5 +1,5 @@
 --[[--
-小恐龙跳跳（Chrome 断网小游戏）。定时一拍一拍前进：点画布或「跳」跳起，「蹲」躲翼龙；
+小恐龙跳跳（Chrome 断网小游戏）。定时一拍一拍前进：点画布跳起，向下滑蹲躲翼龙；
 世界每拍向左移动 1→2→3 格，障碍间距始终大于一次跳跃所需距离。
 --]]
 local T = require("kogames.l10n")
@@ -118,96 +118,16 @@ end
 local CW = 100 / WORLD      -- 每列宽（虚拟单位）
 local RU = 3                -- 每行高
 local GY = 72               -- 地面线
-local PX = 0.75             -- 精灵像素
-local DINO = {
-    "........#######.",
-    "........########",
-    "........##o#####",
-    "........########",
-    "........########",
-    "........#####...",
-    "#......######...",
-    "##....#######.#.",
-    "###..##########.",
-    "###############.",
-    ".##############.",
-    "..#############.",
-    "...###########..",
-    "....########....",
-}
-local LEGS = {
-    { ".....###..##....", ".....##...#.....", },
-    { ".....##..###....", ".....#...##.....", },
-    { ".....###..###...", ".....###..###...", },
-}
-local DUCKED = {
-    "............########",
-    "............##o#####",
-    "............########",
-    "#..........#####....",
-    "##....#########.....",
-    "###############.....",
-    ".##############.....",
-    "..############......",
-    "...###########......",
-}
-local DUCK_LEGS = {
-    { "....##..###.........", "....#...##..........", },
-    { "....###..##.........", "....##...#..........", },
-}
+local DINO_SZ, PTERO_SZ, CLOUD_SZ = 14, 9, 10
+local CACTUS_SZ = { small = 9, big = 12, group = 12 }
 
-local function sprite(d, rows, ox, oy)
-    for r, line in ipairs(rows) do
-        local c = 1
-        while c <= #line do
-            local ch = line:sub(c, c)
-            if ch == "." then c = c + 1
-            else
-                local e = c
-                while e < #line and line:sub(e + 1, e + 1) == ch do e = e + 1 end
-                d.rect(ox + (c - 1) * PX, oy + (r - 1) * PX, (e - c + 1) * PX, PX, ch == "o" and "white" or "black")
-                c = e + 1
-            end
-        end
-    end
-end
-
-local function cactus(d, left, w, h)
-    local cx = left + w * CW / 2
-    local function one(x, hh)
-        local top = GY - hh * RU
-        d.rect(x - 1.1, top, 2.2, hh * RU, "black")
-        local ay = top + hh * RU * 0.35
-        d.rect(x - 3.4, ay, 2.4, 1.4, "black")
-        d.rect(x - 3.4, ay - 3, 1.4, 4.4, "black")
-        d.rect(x + 1, ay + 2, 2.4, 1.4, "black")
-        d.rect(x + 2, ay - 1, 1.4, 4.4, "black")
-    end
-    if w == 1 then one(cx, h)
-    elseif w == 2 then one(cx - 1.6, h) one(cx + 2.2, h - 1)
-    else one(cx - 4, h) one(cx, h + 0.8) one(cx + 4, h - 0.6) end
+local function cactus(d, left, o)
+    local sz = CACTUS_SZ[o.kind]
+    d.icon("cactus_" .. o.kind, left + o.w * CW / 2, GY - sz / 2, sz)
 end
 
 local function ptero(d, left, by, flap)
-    local y = GY - by * RU - 2 * RU + 1
-    d.rect(left + 3, y + 2.2, 7, 2.6, "black")
-    d.rect(left + 8, y + 1.2, 3, 2.4, "black")
-    d.rect(left + 10.6, y + 2.4, 3.2, 1, "black")
-    d.rect(left + 9.4, y + 1.8, 0.8, 0.8, "white")
-    d.rect(left, y + 3.4, 4, 1.2, "black")
-    if flap then
-        d.rect(left + 4, y - 1.6, 3, 4, "black")
-        d.rect(left + 6.5, y - 3, 2, 2, "black")
-    else
-        d.rect(left + 4, y + 4.6, 3, 3.4, "black")
-        d.rect(left + 6.5, y + 7, 2, 1.6, "black")
-    end
-end
-
-local function cloud(d, x, y)
-    d.rect(x + 2, y + 3, 11, 2.4, "grey")
-    d.rect(x + 5, y + 1, 5, 2.4, "grey")
-    d.rect(x, y + 4, 15, 1.6, "grey")
+    d.icon(flap and "ptero1" or "ptero2", left + CW, GY - by * RU - 3, PTERO_SZ)
 end
 
 local function pad5(n) return ("%05d"):format(math.min(n, 99999)) end
@@ -220,36 +140,30 @@ function Core.draw(s, d, hi)
         elseif h == 5 then d.rect(c * CW, GY + 5.5, 3, 0.6, "dark")
         elseif h == 9 then d.rect(c * CW, GY + 2, 1, 0.6, "dark") end
     end
-    for _, c in ipairs(s.clouds) do cloud(d, c.x * CW, c.y) end
+    for _, c in ipairs(s.clouds) do d.icon("cloud", c.x * CW + CLOUD_SZ / 2, c.y, CLOUD_SZ) end
     local flap = s.ticks % 2 == 0
     for _, o in ipairs(s.obs) do
         local left = (o.x - 1) * CW
         if o.kind == "ptero" then ptero(d, left, o.by, flap)
-        else cactus(d, left, o.w, o.h) end
+        else cactus(d, left, o) end
     end
-    local left = DX * CW - 1.5
-    local rows = {}
-    if s.duck > 0 then
-        for i, l in ipairs(DUCKED) do rows[i] = l end
-        local leg = DUCK_LEGS[flap and 1 or 2]
-        rows[#rows + 1] = leg[1] rows[#rows + 1] = leg[2]
-        sprite(d, rows, left - 1.5, GY - #rows * PX + 0.6)
-    else
-        for i, l in ipairs(DINO) do rows[i] = l end
-        local leg = (s.y > 0 or s.over) and LEGS[3] or LEGS[flap and 1 or 2]
-        rows[#rows + 1] = leg[1] rows[#rows + 1] = leg[2]
-        sprite(d, rows, left, GY - s.y * RU - #rows * PX + 0.6)
-    end
+    local name
+    if s.over then name = "dino_dead"
+    elseif s.duck > 0 then name = flap and "dino_duck1" or "dino_duck2"
+    elseif s.y > 0 then name = "dino_jump"
+    else name = flap and "dino_run1" or "dino_run2" end
+    d.icon(name, DX * CW + CW - 1, GY - s.y * RU - DINO_SZ / 2 + 0.6, DINO_SZ)
     if s.flash > 0 and s.flash % 2 == 0 then
-        d.text(pad5(hi or 0), 72, 8, 3.6, "grey")
+        d.text(pad5(hi or 0), 86, 8, 3.6, "grey")
     else
-        d.text("HI " .. pad5(hi or 0) .. "  " .. pad5(s.dist), 70, 8, 3.6, "grey")
+        d.text(pad5(hi or 0), 62, 8, 3.6, "grey")
+        d.text(pad5(s.dist), 86, 8, 3.6, "black")
     end
 end
 
 local M = { id = "dino", title = T("小恐龙跳跳"), icon = "timeline", tier = "C",
     desc = T("跳过仙人掌，蹲过翼龙"), core = Core, INTERVALS = INTERVALS, WORLD = WORLD, DX = DX, AIR = AIR,
-    help = T("小恐龙自动向前跑，障碍从右边冲来。\n点画布或「跳」起跳（滞空约 5 拍），翼龙飞得低时可跳过，飞得居中时点「蹲」（下一拍起蹲 2 拍）躲过，飞得高时直接跑过去。\n分数随距离增加，每 100 分提示一次，速度也会越来越快。撞上障碍就游戏结束。\n点「开始」或任意操作开始，可随时暂停；在设置中选择休闲 / 标准 / 困难。") }
+    help = T("小恐龙自动向前跑，障碍从右边冲来。\n点画布起跳（滞空约 5 拍），翼龙飞得低时可跳过，飞得居中时向下滑动蹲下（下一拍起蹲 2 拍）躲过，飞得高时直接跑过去。\n分数随距离增加，每 100 分提示一次，速度也会越来越快。撞上障碍就游戏结束。\n点画布开始；撞上后点画布重来。暂停、新游戏和难度（休闲 / 标准 / 困难）都在设置里。") }
 
 function M.new(ctx)
     local self = {}
@@ -276,33 +190,31 @@ function M.new(ctx)
 
     function self.render()
         local fresh = s.dist == 0 and s.ticks == 0
-        local status
-        if s.over then status = T("GAME OVER")
-        elseif paused then status = fresh and T("点「开始」或点画布起跑") or T("已暂停")
-        elseif s.flash > 0 then status = (T("%d 分！")):format(math.floor(s.dist / 100) * 100)
-        else status = (T("得分 %d")):format(s.dist) end
         local lv = {}
         for n, name in ipairs({ T("休闲"), T("标准"), T("困难") }) do
             lv[#lv + 1] = { text = name, selected = n == s.level, callback = function() self.setLevel(n) end }
         end
         ctx:render({
             title = T("小恐龙跳跳"),
-            status = status,
             canvas = {
                 w = 100, h = 100,
                 draw = function(d)
                     Core.draw(s, d, hi())
-                    if s.over then d.text("GAME OVER", 50, 42, 7, "black") end
+                    if s.over then d.icon("restart", 50, 42, 16) end
                 end,
-                on_tap = function() self.jump() end,
+                on_tap = function()
+                    if s.over then self.newGame() else self.jump() end
+                end,
             },
+            on_swipe = function(dir)
+                if dir == "south" then self.duck() elseif dir == "north" then self.jump() end
+            end,
             settings = { groups = { { label = T("难度"), options = lv } }, reset = function() self.newGame() end },
             buttons = {
                 {
-                    { text = T("跳"), callback = function() self.jump() end },
-                    { text = T("蹲"), callback = function() self.duck() end },
-                    { text = s.over and T("重来") or (paused and (fresh and T("开始") or T("继续")) or T("暂停")),
-                      callback = s.over and function() self.newGame() end or function() self.toggle() end },
+                    { menu = true, text = paused and not s.over and (fresh and T("开始") or T("继续")) or T("暂停"),
+                      enabled = not s.over, callback = function() self.toggle() end },
+                    { menu = true, text = T("新游戏"), callback = function() self.newGame() end },
                 },
             },
         })
