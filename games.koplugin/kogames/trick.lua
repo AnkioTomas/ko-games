@@ -41,21 +41,50 @@ end
 
 function Core.opts(s) return { pdk = s.mode == "pdk" } end
 
---- 叫地主 / 不叫。返回 "redeal" 表示三家都不叫。
-function Core.bid(s, seat, call)
+local function startPlay(s)
+    local seat = s.landlord
+    for _, id in ipairs(s.bottom) do table.insert(s.hands[seat], id) end
+    sorted(s.hands[seat])
+    s.phase, s.turn, s.shown = "play", seat, {}
+end
+
+local function startDouble(s, landlord)
+    s.landlord, s.phase, s.dn, s.doubled, s.say = landlord, "double", 0, {}, {}
+    s.turn = nextSeat(landlord) -- 地主最后一个表态
+end
+
+--- 叫地主 / 抢地主：已有人叫过之后再选「是」就是抢，倍数翻倍。
+--- 一圈结束后，若叫地主的人被别人抢过，他还有一次抢的机会。返回 "redeal" 表示三家都不叫。
+function Core.bid(s, seat, yes)
     s.bidn = s.bidn + 1
-    s.bids = s.bids or {}
-    s.bids[seat] = call
-    if call then
-        s.landlord, s.phase, s.turn = seat, "play", seat
-        for _, id in ipairs(s.bottom) do table.insert(s.hands[seat], id) end
-        sorted(s.hands[seat])
-        s.shown = {}
-    elseif s.bidn >= 3 then
-        return "redeal"
+    s.say = s.say or {}
+    if not s.caller then
+        if yes then s.caller, s.cand = seat, seat end
+        s.say[seat] = yes and "call" or "pass"
     else
-        s.turn = nextSeat(seat)
+        if yes then s.cand, s.mult = seat, s.mult * 2 end
+        s.say[seat] = yes and "grab" or "nograb"
     end
+    if s.extra then return startDouble(s, s.cand) end
+    if s.bidn >= 3 then
+        if not s.caller then return "redeal" end
+        if s.cand ~= s.caller then
+            s.extra, s.turn = true, s.caller
+            return
+        end
+        return startDouble(s, s.cand)
+    end
+    s.turn = nextSeat(seat)
+end
+
+--- 加倍 / 不加倍：每个人表态一次，选加倍则倍数翻倍；地主最后表态，之后开始出牌。
+function Core.double(s, seat, yes)
+    s.say[seat] = yes and "double" or "nodouble"
+    s.doubled[seat] = yes
+    if yes then s.mult = s.mult * 2 end
+    s.dn = s.dn + 1
+    if s.dn >= 3 then return startPlay(s) end
+    s.turn = nextSeat(seat)
 end
 
 --- 是否有能压过上一手的牌（跑得快要得起必须出）。
@@ -165,8 +194,11 @@ end
 function Core.aiAct(s, seat)
     if s.phase == "bid" then
         local strong = R.strength(s.hands[seat])
-        local last = s.bidn == 2
-        return Core.bid(s, seat, strong >= (last and 3 or 4.5))
+        local need = s.extra and 7 or s.caller and 6 or (s.bidn == 2 and 3 or 4.5)
+        return Core.bid(s, seat, strong >= need)
+    end
+    if s.phase == "double" then
+        return Core.double(s, seat, R.strength(s.hands[seat]) >= (seat == s.landlord and 6.5 or 5.5))
     end
     local o = Core.aiOpts(s, seat)
     local cards = R.aiChoose(s.hands[seat], o)
@@ -211,6 +243,9 @@ function Core.label(cards)
 end
 
 local RED = { [2] = true, [4] = true }
+local COMBO = { triple = "三张", triple1 = "三带一", triple2 = "三带二", straight = "顺子", pairs = "连对",
+    plane = "飞机", plane1 = "飞机带单", plane2 = "飞机带对", four2 = "四带二", four22 = "四带两对", bomb = "炸弹", rocket = "火箭" }
+local SAY = { call = "叫地主", grab = "抢地主", pass = "不叫", nograb = "不抢", double = "加倍", nodouble = "不加倍" }
 
 function Core.cardCell(id, selected)
     local v = R.value(id)
@@ -360,14 +395,23 @@ function Core.define(spec)
 
             local rows = {}
             if s.phase == "bid" then
-                rows[#rows + 1] = { { text = T("叫地主"), enabled = mine, callback = function()
+                local grab = s.caller ~= nil
+                rows[#rows + 1] = { { text = grab and T("抢地主") or T("叫地主"), enabled = mine, callback = function()
                     if Core.bid(s, 1, true) == "redeal" then return end
                     afterHuman()
-                end }, { text = T("不叫"), enabled = mine, callback = function()
+                end }, { text = grab and T("不抢") or T("不叫"), enabled = mine, callback = function()
                     if Core.bid(s, 1, false) == "redeal" then
                         ctx:notify(T("没人叫地主，重新发牌"))
                         s = Core.deal(ctx.rng, spec.mode)
                     end
+                    afterHuman()
+                end } }
+            elseif s.phase == "double" then
+                rows[#rows + 1] = { { text = T("加倍"), enabled = mine, callback = function()
+                    Core.double(s, 1, true)
+                    afterHuman()
+                end }, { text = T("不加倍"), enabled = mine, callback = function()
+                    Core.double(s, 1, false)
                     afterHuman()
                 end } }
             elseif s.phase == "done" then
@@ -409,18 +453,23 @@ function Core.define(spec)
                             local y = 26 + (k - 1) * 17.5
                             local seat = ln[1]
                             if seat == 1 then
-                                d.icon("person", 8, y + 7, 8)
-                                if s.landlord == 1 then d.icon("crown", 8, y - 0.5, 4.5) end
+                                d.icon("person", 8, y + 4, 7)
+                                if s.landlord == 1 then d.icon("crown", 8, y - 2, 4) end
                             end
                             local a = s.shown[seat]
+                            local combo = a and R.parse(a, { pdk = s.mode == "pdk", all = true })
+                            if combo and COMBO[combo.type] then
+                                d.text(T(COMBO[combo.type]), 8, y + (seat == 1 and 11 or 7), 2.4, "dark")
+                            end
                             if a == false then d.text(T("不要"), ln[2] == "right" and CW - 12 or 22, y + 7, 3, "dark")
                             elseif a then drawPlayed(d, a, y, ln[2]) end
                         end
-                        if s.phase == "bid" then
-                            d.text(T("叫地主？"), CW / 2, 50, 6, "black")
-                            for seat = 3, 2, -1 do
-                                if s.bids and s.bids[seat] == false then
-                                    d.text(T("不叫"), seat == 3 and 22 or CW - 12, seat == 3 and 33 or 50.5, 3, "dark")
+                        if s.phase == "bid" or s.phase == "double" then
+                            d.text(s.phase == "double" and T("加倍？") or s.caller and T("抢地主？") or T("叫地主？"), CW / 2, 50, 6, "black")
+                            for seat = 3, 1, -1 do
+                                local word = s.say and s.say[seat]
+                                if word then
+                                    d.text(T(SAY[word]), seat == 2 and CW - 14 or 22, seat == 3 and 33 or seat == 2 and 50.5 or 68, 3, "dark")
                                 end
                             end
                         elseif s.phase == "done" then

@@ -167,6 +167,27 @@ return function(t)
         assert(count == 20, count)
     end)
 
+    test("trick: grabbing the landlord role and doubling", function()
+        local s = Trick.deal(Rng.new(1), "ddz")
+        s.turn, s.bidn = 1, 0
+        Trick.bid(s, 1, true) -- 叫
+        Trick.bid(s, 2, true) -- 抢
+        assert(s.mult == 2 and s.cand == 2)
+        Trick.bid(s, 3, false)
+        assert(s.extra and s.turn == 1, "caller gets a last chance")
+        Trick.bid(s, 1, true)
+        assert(s.phase == "double" and s.landlord == 1 and s.mult == 4 and s.turn == 2)
+        Trick.double(s, 2, true)
+        Trick.double(s, 3, false)
+        assert(s.phase == "double" and s.turn == 1)
+        Trick.double(s, 1, false)
+        assert(s.phase == "play" and s.turn == 1 and #s.hands[1] == 20 and s.mult == 8)
+        local r = Trick.deal(Rng.new(2), "ddz")
+        r.turn, r.bidn = 1, 0
+        Trick.bid(r, 1, false) Trick.bid(r, 2, false)
+        assert(Trick.bid(r, 3, false) == "redeal")
+    end)
+
     test("trick: sessions render and complete via hint", function()
         for _, id in ipairs({ "doudizhu", "paodekuai" }) do
             H.saved, H.view = {}, nil
@@ -182,7 +203,9 @@ return function(t)
                     end
                 end
                 if s.phase == "bid" then
-                    (find("叫地主") or find("不叫")).callback()
+                    (find("叫地主") or find("抢地主") or find("不叫")).callback()
+                elseif s.phase == "double" then
+                    (find("不加倍")).callback()
                 else
                     find("hint").callback()
                     local play, pass = find("play"), find("pass")
