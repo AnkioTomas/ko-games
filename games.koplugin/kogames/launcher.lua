@@ -52,13 +52,4 @@ function M.play(kind, id)
     return require("kogames.registry").launch(hostFor(kind), def, nil)
 end
 
---- 置顶变化后让顶部菜单标签页下次打开时重建
-function M.refreshMenu()
-    for _i, mod in ipairs({ "apps/filemanager/filemanager", "apps/reader/readerui" }) do
-        local ok, cls = pcall(require, mod)
-        local inst = ok and cls.instance
-        if inst and inst.menu then inst.menu.tab_item_table = nil end
-    end
-end
-
 return M

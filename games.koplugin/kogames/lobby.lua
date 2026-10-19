@@ -31,7 +31,6 @@ function Lobby:togglePin(id)
     local list = {}
     for _, d in ipairs(Registry.all()) do if set[d.id] then list[#list + 1] = d.id end end
     self.host:setSetting("pinned", list)
-    pcall(require("kogames.launcher").refreshMenu)
     self.page = 1
 end
 
