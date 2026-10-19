@@ -107,18 +107,18 @@ return function(t)
 
     test("mario session: tap controls, ticks, save and best", function()
         local g, host = launch(M)
-        assert(H.view.canvas and #H.view.buttons == 2)
+        assert(H.view.canvas and #H.view.buttons == 1 and #H.view.buttons[1] == 3 and H.view.buttons[1][1].icon)
         assert(host.pending() == 0, "waits for first input")
         local x0 = g.state().x
-        H.view.canvas.on_tap(90, 30) -- 右三分之一
+        H.view.canvas.on_tap(60, 30) -- 右三分之一
         assert(host.pending() == 1 and g.state().dir == 1)
         host.advance(M.INTERVAL * 2 + 0.01)
         assert(g.state().x == x0 + 2)
         H.view.canvas.on_tap(10, 30)
         assert(g.state().dir == -1)
-        H.view.canvas.on_tap(48, 30)
+        H.view.canvas.on_tap(36, 30)
         assert(g.state().jump)
-        g.input("stop")
+        H.view.buttons[1][1].callback() -- 再点同一方向 = 站住
         assert(g.state().dir == 0)
         g.pause()
         assert(host.pending() == 0 and H.saved["mario"].state)

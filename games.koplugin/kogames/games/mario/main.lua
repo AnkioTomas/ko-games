@@ -5,7 +5,7 @@
 local T = require("kogames.l10n")
 local LEVELS = require("kogames.games.mario.levels")
 
-local COLS, ROWS, TILE = 12, 9, 8
+local COLS, ROWS, TILE = 9, 9, 8
 local INTERVAL = 0.3
 local SOLID = { ["#"] = true, B = true, ["?"] = true, X = true, P = true }
 local LIVES = 3
@@ -157,7 +157,7 @@ end
 
 local M = { id = "mario", title = T("跳跳冒险"), icon = "timeline", tier = "C",
     desc = T("横版闯关，跳过坑和敌人"), core = Core, INTERVAL = INTERVAL,
-    help = T("横版闯关：到达终点旗杆即过关，共 3 关。\n点「◀」「▶」后角色每拍自动朝该方向走一格，点「停」站住；点「跳」起跳（上升 3 格，滞空时可前进）。\n也可以点画面：左边 = 向左，右边 = 向右，中间 = 跳。\n顶问号砖得金币；踩敌人头顶可消灭，从侧面碰到会失去一条命；掉进坑里也会失去一条命，共 3 条命。") }
+    help = T("横版闯关：到达终点旗杆即过关，共 3 关。\n点 ◀ ▶ 后角色每拍自动朝该方向走一格，再点同一方向就站住；点 ↑ 起跳（上升 3 格，滞空时可前进）。\n也可以点画面：左边 = 向左，右边 = 向右，中间 = 跳。暂停、继续、新游戏在右上角设置里。\n顶问号砖得金币；踩敌人头顶可消灭，从侧面碰到会失去一条命；掉进坑里也会失去一条命，共 3 条命。") }
 
 function M.new(ctx)
     local self = {}
@@ -182,102 +182,105 @@ function M.new(ctx)
 
     local function camera()
         local w = Core.width(s)
-        return math.max(1, math.min(w - COLS + 1, s.x - 4))
+        return math.max(1, math.min(w - COLS + 1, s.x - 3))
     end
 
+    local face = 1
+
     local function drawTile(d, ch, x, y, above)
-        if ch == "#" then
-            d.rect(x, y, TILE, TILE, "dark")
-            d.frame(x, y, TILE, TILE, "black", 0.4)
-        elseif ch == "B" then
-            d.rect(x, y, TILE, TILE, "grey")
-            d.frame(x, y, TILE, TILE, "black", 0.5)
-            d.line(x, y + TILE / 2, x + TILE, y + TILE / 2, "black", 0.4)
-            d.line(x + TILE / 2, y, x + TILE / 2, y + TILE / 2, "black", 0.4)
-        elseif ch == "?" then
-            d.rect(x, y, TILE, TILE, "black")
-            d.text("?", x + TILE / 2, y + TILE / 2, TILE * 0.5, "white")
-        elseif ch == "X" then
-            d.rect(x, y, TILE, TILE, "dark")
-            d.frame(x, y, TILE, TILE, "black", 0.6)
-        elseif ch == "P" then
-            d.rect(x, y, TILE, TILE, "grey")
-            d.frame(x, y, TILE, TILE, "black", 0.8)
-            if above ~= "P" then d.rect(x, y, TILE, 2, "black") end
-        elseif ch == "o" then
-            d.ring(x + TILE / 2, y + TILE / 2, TILE * 0.3, "black", 1)
-        elseif ch == "F" then
-            d.rect(x + TILE / 2 - 0.5, y, 1, TILE, "black")
-            if above ~= "F" then
-                d.circle(x + TILE / 2, y + 1, 1.2, "black")
-                d.rect(x + TILE / 2 + 0.5, y + 1, TILE / 2, 2.5, "dark")
-            end
+        local cx, cy = x + TILE / 2, y + TILE / 2
+        if ch == "#" then d.icon(above == "#" and "dirt" or "ground", cx, cy, TILE)
+        elseif ch == "B" then d.icon("brick", cx, cy, TILE)
+        elseif ch == "?" then d.icon("qblock", cx, cy, TILE)
+        elseif ch == "X" then d.icon("qblock_used", cx, cy, TILE)
+        elseif ch == "P" then d.icon(above == "P" and "pipe_body" or "pipe_top", cx, cy, TILE)
+        elseif ch == "o" then d.icon("coin", cx, cy, TILE)
+        elseif ch == "F" then d.icon(above == "F" and "flag_pole" or "flag_top", cx, cy, TILE)
         end
+    end
+
+    local function drawBackdrop(d, cx)
+        local span = 24 * TILE
+        for k = 0, 3 do
+            local hx = ((k * 17 + 3) * TILE - (cx - 1) * TILE * 0.5) % (span * 2) - TILE * 3
+            d.icon("cloud", hx, TILE * (2.5 + k % 2), TILE * 2)
+        end
+        for k = 0, math.floor(Core.width(s) / 18) do
+            local hx = (k * 18 + 8 - cx + 1.5) * TILE
+            if hx > -TILE * 2 and hx < (COLS + 2) * TILE then d.icon("hill", hx, (ROWS - 2) * TILE - TILE * 1.5, TILE * 3) end
+        end
+    end
+
+    local function drawHud(d)
+        for i = 1, s.lives do d.icon("heart", TILE * 0.7 + (i - 1) * TILE * 0.6, TILE * 0.55, TILE * 0.5) end
+        d.icon("coin_hud", TILE * 3.9, TILE * 0.55, TILE * 0.55)
+        d.text(tostring(s.coins), TILE * 4.6, TILE * 0.55, TILE * 0.45, "black")
+        d.text(tostring(s.score), COLS * TILE - TILE * 0.4, TILE * 0.55, TILE * 0.45, "black")
+        d.text(tostring(s.level), TILE * 6.4, TILE * 0.55, TILE * 0.45, "dark")
+    end
+
+    local function drawZones(d)
+        local W, y0 = COLS * TILE, TILE * 1.2
+        d.line(W / 3, y0, W / 3, y0 + TILE, "grey", 0.5)
+        d.line(W * 2 / 3, y0, W * 2 / 3, y0 + TILE, "grey", 0.5)
+        d.icon("left", W / 6, y0 + TILE / 2, TILE * 0.6)
+        d.icon("jump", W / 2, y0 + TILE / 2, TILE * 0.6)
+        d.icon("right", W * 5 / 6, y0 + TILE / 2, TILE * 0.6)
     end
 
     local function draw(d)
         local cx = camera()
         d.rect(0, 0, COLS * TILE, ROWS * TILE, "white")
+        drawBackdrop(d, cx)
+        local fx, fy
         for r = 1, ROWS do
             for c = 1, COLS do
                 local mx = cx + c - 1
                 local ch = Core.at(s, mx, r)
                 if mx <= Core.width(s) and ch ~= " " then
                     drawTile(d, ch, (c - 1) * TILE, (r - 1) * TILE, Core.at(s, mx, r - 1))
+                    if ch == "F" then fx, fy = c, r end
                 end
             end
+        end
+        if fx and fx < COLS and Core.at(s, cx + fx, fy) == " " then
+            d.icon("castle", fx * TILE + TILE / 2, (fy - 1) * TILE + TILE / 2, TILE)
         end
         for _, e in ipairs(s.enemies) do
             local c = e.x - cx + 1
             if c >= 1 and c <= COLS then
-                local x, y = (c - 1) * TILE, (e.y - 1) * TILE
-                d.circle(x + TILE / 2, y + TILE * 0.55, TILE * 0.4, "dark")
-                d.rect(x + 1, y + TILE * 0.55, TILE - 2, TILE * 0.45, "white")
-                d.rect(x + 1.5, y + TILE * 0.8, 2, TILE * 0.2, "black")
-                d.rect(x + TILE - 3.5, y + TILE * 0.8, 2, TILE * 0.2, "black")
-                d.rect(x + TILE * 0.3, y + TILE * 0.4, 1, 1.5, "white")
-                d.rect(x + TILE * 0.6, y + TILE * 0.4, 1, 1.5, "white")
+                d.icon("goomba", (c - 0.5) * TILE, (e.y - 0.5) * TILE, TILE)
             end
         end
-        local px, py = (s.x - cx) * TILE, (s.y - 1) * TILE
-        d.circle(px + TILE / 2, py + TILE * 0.3, TILE * 0.26, "black")
-        d.rect(px + TILE * 0.15, py + TILE * 0.08, TILE * 0.7, TILE * 0.14, "dark")
-        d.rect(px + TILE * 0.25, py + TILE * 0.5, TILE * 0.5, TILE * 0.35, "black")
-        d.rect(px + TILE * 0.2, py + TILE * 0.85, TILE * 0.25, TILE * 0.15, "black")
-        d.rect(px + TILE * 0.55, py + TILE * 0.85, TILE * 0.25, TILE * 0.15, "black")
-        if s.over or paused then
-            local text
-            if s.won then text = T("通关！")
-            elseif s.over then text = T("游戏结束")
-            elseif s.msg == "dead" then text = T("失去一条命")
-            elseif s.msg == "clear" then text = T("过关！")
-            elseif s.t == 0 then text = T("点屏幕或按钮开始") end
-            if text then
-                d.rect(10, 26, COLS * TILE - 20, 16, "white")
-                d.frame(10, 26, COLS * TILE - 20, 16, "black", 0.8)
-                d.text(text, COLS * TILE / 2, 34, 3, "black")
-            end
-        end
+        if s.dir ~= 0 then face = s.dir end
+        local pose = not s.grounded and "player_jump" or (s.dir ~= 0 and s.t % 2 == 1 and "player_walk" or "player_stand")
+        d.icon(pose .. (face < 0 and "_l" or ""), (s.x - cx + 0.5) * TILE, (s.y - 0.5) * TILE, TILE)
+        drawHud(d)
+        if s.over then
+            d.rect(10, 26, COLS * TILE - 20, 16, "white")
+            d.frame(10, 26, COLS * TILE - 20, 16, "black", 0.8)
+            if s.won then d.icon("flag_top", COLS * TILE / 2, 34, 12)
+            else d.text(T("游戏结束"), COLS * TILE / 2, 34, 3, "black") end
+        elseif s.msg == "clear" then d.icon("flag_top", COLS * TILE / 2, 30, 16)
+        elseif s.msg == "dead" then d.icon("heart", COLS * TILE / 2, 30, 14) end
+        if paused and not s.over then drawZones(d) end
     end
 
     function self.render()
-        local best = math.max(ctx:best("best") or 0, s.score)
-        local status = (T("金币 %d  得分 %d  最高 %d  第 %d 关  命 %d")):format(s.coins, s.score, best, s.level, s.lives)
         ctx:render({
             title = T("跳跳冒险"),
-            status = status,
             canvas = { w = COLS * TILE, h = ROWS * TILE, draw = draw,
                 on_tap = function(x) self.tap(x) end },
+            settings = { reset = function() self.newGame() end, groups = {} },
             buttons = {
                 {
-                    { text = "◀", callback = function() self.input("left") end },
-                    { text = "▶", callback = function() self.input("right") end },
-                    { text = T("跳"), callback = function() self.input("jump") end },
-                    { text = T("停"), callback = function() self.input("stop") end },
+                    { icon = "left", selected = s.dir == -1, callback = function() self.input("left") end },
+                    { icon = "right", selected = s.dir == 1, callback = function() self.input("right") end },
+                    { icon = "jump", callback = function() self.input("jump") end },
                 },
-                { { text = s.over and T("再来一局") or (paused and (s.t == 0 and T("开始") or T("继续")) or T("暂停")),
-                    callback = s.over and function() self.newGame() end or function() self.toggle() end },
-                  { text = T("新游戏"), callback = function() self.newGame() end } },
+                { { menu = true, enabled = not s.over, text = paused and (s.t == 0 and T("开始") or T("继续")) or T("暂停"),
+                    callback = function() self.toggle() end },
+                  { menu = true, text = T("新游戏"), callback = function() self.newGame() end } },
             },
         })
     end
@@ -324,8 +327,8 @@ function M.new(ctx)
 
     function self.input(k)
         if s.over then return end
-        if k == "left" then Core.setDir(s, -1)
-        elseif k == "right" then Core.setDir(s, 1)
+        if k == "left" then Core.setDir(s, s.dir == -1 and 0 or -1)
+        elseif k == "right" then Core.setDir(s, s.dir == 1 and 0 or 1)
         elseif k == "stop" then Core.setDir(s, 0)
         elseif k == "jump" then Core.requestJump(s) end
         if paused then self.resume() end
