@@ -49,6 +49,16 @@ return function(t)
         assert(C.deal(d) and #d.stock == 40 and #d.tab[1] == 7)
         d.tab[3] = {}
         assert(not C.canDeal(d) and not C.deal(d))
+        local last = blank()
+        last.done = 7
+        local run = {}
+        for r = 13, 1, -1 do if r > 1 then run[#run + 1] = id(1, r) end end
+        last.tab[1] = run
+        for c = 2, 10 do last.tab[c] = { id(2, 5) } end
+        last.stock = {}
+        for c = 1, 9 do last.stock[c] = id(2, 6) end
+        last.stock[10] = id(1, 1)
+        assert(C.deal(last) and C.won(last))
         local win = blank()
         win.done = 8
         assert(C.won(win))
@@ -69,6 +79,14 @@ return function(t)
         assert(#s.tab[1] == 2 and #s.tab[2] == 0 and H.saved.spider.state.moves == 1)
         H.view.buttons[1][1].callback() -- deal blocked by empty column
         assert(#s.stock == 50)
+        for c = 1, 10 do s.tab[c] = { id(2, 5) } end
+        local run = {}
+        for r = 13, 2, -1 do run[#run + 1] = id(1, r) end
+        s.tab[1], s.done, s.stock, s.moves = run, 7, {}, 5
+        for c = 1, 9 do s.stock[c] = id(2, 6) end
+        s.stock[10] = id(1, 1)
+        H.view.buttons[1][1].callback() -- last deal completes the 8th run
+        assert(C.won(s) and H.saved.stats_spider.best_moves_1 == 6)
         H.view.settings.groups[1].options[2].callback() -- 2 suits, new game
         assert(g.state().suits == 2 and #g.state().stock == 50 and rows >= 8)
     end)

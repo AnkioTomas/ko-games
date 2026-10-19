@@ -233,7 +233,7 @@ function M.new(ctx)
                     end },
                     { text = T("发牌"), enabled = #s.stock > 0, callback = function()
                         sel = nil
-                        if Core.deal(s) then persist() else ctx:notify(T("有空列时不能发牌")) end
+                        if Core.deal(s) then finish() persist() else ctx:notify(T("有空列时不能发牌")) end
                         self.render()
                     end },
                     { menu = true, text = T("新游戏"), callback = function() newGame() end },
