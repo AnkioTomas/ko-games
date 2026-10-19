@@ -11,6 +11,12 @@ view = {
     thick = 3,                                 -- 可选：每 3 格画粗线（数独）
     ratio = 0.7,                               -- 可选：格高/格宽，默认 1（方格）；设置后按整屏宽高分别适配
   },
+  canvas  = {                                  -- 可选：自由画布（实时游戏），与 grid 二选一
+    w = 100, h = 150,                          -- 虚拟尺寸，按整屏等比缩放
+    draw = function(d) end,                    -- d.rect(x,y,w,h,c) d.frame(x,y,w,h,c,t) d.circle(x,y,r,c) d.ring(x,y,r,c,t) d.line(x1,y1,x2,y2,c,t)
+                                               -- d.text(s,x,y,size,c) 居中 d.icon(name,x,y,size) 居中；c = "black"|"dark"|"grey"|"white"
+    on_tap = function(x, y) end,               -- 虚拟坐标
+  },
   on_swipe = function(dir) end,                -- dir = "north"|"south"|"east"|"west"
   buttons = { { {text=, callback=, enabled=, selected=}, ... } 一行, { label = "分组标题" } },
   help    = { title=, text= },                           -- 玩法说明：标题栏右上角 ? 按钮；help_now=true 时进入即弹出
@@ -374,6 +380,69 @@ function Board:cellAt(pos)
     return math.floor((pos.y - d.y) / self.ch) + 1, math.floor((pos.x - d.x) / self.cs) + 1
 end
 
+-- 画布 ------------------------------------------------------------------
+
+local Canvas = Widget:extend{}
+
+function Canvas:init()
+    local cv = self.canvas
+    local k = math.min(self.width / cv.w, self.height / cv.h)
+    self.k = k
+    self.dimen = Geom:new{ w = math.floor(cv.w * k), h = math.floor(cv.h * k) }
+    self.texts = {}
+end
+
+function Canvas:paintTo(bb, x, y)
+    self.dimen.x, self.dimen.y = x, y
+    local k = self.k
+    local function R(v) return math.floor(v * k + 0.5) end
+    local function col(c) return FILLS[c] or (c == "white" and Blitbuffer.COLOR_WHITE) or Blitbuffer.COLOR_BLACK end
+    local d = {}
+    function d.rect(rx, ry, rw, rh, c) bb:paintRect(x + R(rx), y + R(ry), math.max(1, R(rw)), math.max(1, R(rh)), col(c)) end
+    function d.frame(rx, ry, rw, rh, c, th)
+        local t, X, Y, W, H = math.max(1, R(th or 0.6)), x + R(rx), y + R(ry), math.max(1, R(rw)), math.max(1, R(rh))
+        bb:paintRect(X, Y, W, t, col(c)) bb:paintRect(X, Y + H - t, W, t, col(c))
+        bb:paintRect(X, Y, t, H, col(c)) bb:paintRect(X + W - t, Y, t, H, col(c))
+    end
+    function d.circle(cx, cy, r, c) bb:paintCircle(x + R(cx), y + R(cy), math.max(1, R(r)), col(c)) end
+    function d.ring(cx, cy, r, c, th)
+        local X, Y, rr = x + R(cx), y + R(cy), math.max(2, R(r))
+        bb:paintCircle(X, Y, rr, col(c))
+        bb:paintCircle(X, Y, math.max(0, rr - math.max(1, R(th or 0.6))), Blitbuffer.COLOR_WHITE)
+    end
+    function d.line(x1, y1, x2, y2, c, th)
+        local X1, Y1, X2, Y2 = x + R(x1), y + R(y1), x + R(x2), y + R(y2)
+        local t = math.max(1, R(th or 0.6))
+        local n = math.max(math.abs(X2 - X1), math.abs(Y2 - Y1), 1)
+        for i = 0, n do
+            bb:paintRect(X1 + math.floor((X2 - X1) * i / n) - math.floor(t / 2), Y1 + math.floor((Y2 - Y1) * i / n) - math.floor(t / 2), t, t, col(c))
+        end
+    end
+    function d.text(s, tx, ty, size, c)
+        local sz = math.max(6, R(size))
+        local key = s .. "|" .. sz .. "|" .. tostring(c)
+        local w = self.texts[key]
+        if not w then
+            w = TextWidget:new{ text = s, face = Font:getFace("cfont", sz), fgcolor = TEXT_COLORS[c] or TEXT_COLORS.black, bold = true }
+            self.texts[key] = w
+        end
+        local ws = w:getSize()
+        w:paintTo(bb, x + R(tx) - math.floor(ws.w / 2), y + R(ty) - math.floor(ws.h / 2))
+    end
+    function d.icon(name, ix, iy, size)
+        local sz = math.max(4, R(size))
+        paintIcon(bb, name, x + R(ix) - math.floor(sz / 2), y + R(iy) - math.floor(sz / 2), sz, self.assets)
+    end
+    bb:paintRect(x, y, self.dimen.w, self.dimen.h, Blitbuffer.COLOR_WHITE)
+    self.canvas.draw(d)
+end
+
+function Canvas:pointAt(pos)
+    local d = self.dimen
+    if pos.x < d.x or pos.y < d.y or pos.x >= d.x + d.w or pos.y >= d.y + d.h then return end
+    return (pos.x - d.x) / self.k, (pos.y - d.y) / self.k
+end
+
 -- 界面 ------------------------------------------------------------------
 
 local GameScreen = InputContainer:extend{ covers_fullscreen = true }
@@ -512,6 +581,13 @@ function GameScreen:init()
         add(VerticalSpan:new{ width = px(14) }, px(14))
     end
 
+    if v.canvas then
+        local avail = H - used - btn_total - 2 * margin - gap * 2
+        self.cv = Canvas:new{ canvas = v.canvas, width = inner, height = math.max(px(100), avail), assets = v.assets }
+        add(CenterContainer:new{ dimen = Geom:new{ w = inner, h = self.cv.dimen.h }, self.cv }, self.cv.dimen.h)
+        add(VerticalSpan:new{ width = px(14) }, px(14))
+    end
+
     if v.cards then cardGrid(k, v.cards, inner, add) end
 
     local pg = v.pager
@@ -566,6 +642,11 @@ function GameScreen:init()
 end
 
 function GameScreen:onTap(_, ges)
+    local cv = self.view.canvas
+    if cv and cv.on_tap and self.cv then
+        local x, y = self.cv:pointAt(ges.pos)
+        if x then cv.on_tap(x, y) return true end
+    end
     local g = self.view.grid
     if g and g.on_tap and self.board then
         local r, c = self.board:cellAt(ges.pos)
