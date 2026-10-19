@@ -9,7 +9,6 @@ local COLS, ROWS, BW, BH, BY0 = 10, 7, 10, 5, 20
 local PY, PH, PW = 126, 3, 20
 local R = 1.5
 local MAXANG = math.rad(60)
-local STEP_BTN = 10
 local INTERVAL = 0.28
 
 local Core = { W = W, H = H, COLS = COLS, ROWS = ROWS, BW = BW, BH = BH, BY0 = BY0, PY = PY, PH = PH, PW = PW, R = R }
@@ -137,7 +136,7 @@ end
 
 local M = { id = "breakout", title = T("打砖块"), icon = "timeline", tier = "C",
     desc = T("接球打砖块，清空过关"), core = Core, INTERVAL = INTERVAL,
-    help = T("用底部挡板接住小球，把上面的砖块全部打掉。\n点画布任意位置，挡板会瞬移到那里；也可用「◀」「▶」小幅移动。\n球落到底部扣 1 条命（共 3 条），打中挡板中间会垂直弹起，越靠边角度越斜。\n点「发球」开始，发球后可随时暂停；清空砖块进入下一关，图案不同、球速略快。") }
+    help = T("用底部挡板接住小球，把上面的砖块全部打掉。\n点画布任意位置，挡板会瞬移到那里。\n球落到底部扣 1 条命（共 3 条），打中挡板中间会垂直弹起，越靠边角度越斜。\n球在挡板上时点画布即发球；暂停、重来在右上角设置里。清空砖块进入下一关，图案不同、球速略快。") }
 
 function M.new(ctx)
     local self = {}
@@ -164,11 +163,9 @@ function M.new(ctx)
 
     local function draw(d)
         d.frame(0, 0, W, H, "black", 0.8)
-        local best = math.max(ctx:best("best") or 0, s.score)
-        d.text(T("得分 %d", s.score), 20, 6, 3.5, "black")
-        d.text(T("第 %d 关", s.level), 50, 6, 3.5, "black")
-        d.text(T("最高 %d", best), 80, 6, 3.5, "dark")
-        for i = 1, s.lives do d.circle(4 + (i - 1) * 6, 15, 2, "black") end
+        for i = 1, s.lives do d.icon("heart", 5 + (i - 1) * 6, 8, 5) end
+        d.text(tostring(s.score), 56, 8, 5, "black")
+        d.text(tostring(s.level), 90, 8, 5, "dark")
         for r = 1, ROWS do
             local shade = SHADE[(r - 1) % #SHADE + 1]
             for c = 1, COLS do
@@ -179,28 +176,25 @@ function M.new(ctx)
                 end
             end
         end
-        d.rect(s.px, PY, PW, PH, "black")
-        d.rect(s.px + PW / 2 - 1, PY, 2, PH, "white")
-        d.circle(s.bx, s.by, R + 0.5, "black")
+        d.icon("paddle", s.px + PW / 2, PY + PH / 2, PW)
+        d.icon("ball", s.bx, s.by, 2 * R + 1)
         if s.over then
             d.rect(20, 76, 60, 24, "white")
             d.frame(20, 76, 60, 24, "black", 1)
             d.text(T("游戏结束"), W / 2, 88, 5, "black")
         elseif s.stuck then
-            d.text(T("点「发球」开始"), W / 2, 100, 3.5, "dark")
+            d.icon("serve", s.bx, PY - 14, 8)
         end
     end
 
     function self.render()
-        local label = s.stuck and T("发球") or (paused and T("继续") or T("暂停"))
         ctx:render({
             title = T("打砖块"),
             canvas = { w = W, h = H, draw = draw, on_tap = function(x) self.moveTo(x) end },
             settings = { reset = function() self.newGame() end, groups = {} },
             buttons = { {
-                { text = "◀", callback = function() self.shift(-STEP_BTN) end },
-                { text = label, enabled = not s.over, callback = function() self.toggle() end },
-                { text = "▶", callback = function() self.shift(STEP_BTN) end },
+                { menu = true, enabled = not s.over and not s.stuck, text = paused and T("继续") or T("暂停"),
+                    callback = function() self.toggle() end },
                 { menu = true, text = T("重来"), callback = function() self.newGame() end },
             } },
         })
@@ -235,12 +229,14 @@ function M.new(ctx)
     function self.moveTo(x)
         if s.over then return end
         Core.movePaddle(s, x - PW / 2)
-        self.render()
-    end
-
-    function self.shift(dx)
-        if s.over then return end
-        Core.shiftPaddle(s, dx)
+        if s.stuck then
+            Core.serve(s, ctx.rng)
+            paused = false
+            arm()
+        elseif paused then
+            paused = false
+            arm()
+        end
         self.render()
     end
 

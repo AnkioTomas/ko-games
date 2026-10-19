@@ -64,19 +64,17 @@ return function(t)
 
     test("breakout session: tap, buttons, serve, tick, save and restore", function()
         local g, host = launch(B)
-        assert(H.view.canvas and #H.view.buttons[1] >= 3 and host.pending() == 0)
-        H.view.canvas.on_tap(72, 100)
+        assert(H.view.canvas and #H.view.buttons == 0 and host.pending() == 0)
+        H.view.canvas.on_tap(72, 100) -- 点画布：挡板移过去，同时发球
         assert(g.state().px == 62)
-        H.view.buttons[1][1].callback()
-        assert(g.state().px == 52)
-        H.view.buttons[1][3].callback()
-        assert(g.state().px == 62)
-        g.toggle() -- 发球
         assert(not g.state().stuck and host.pending() == 1 and not g.paused())
         host.advance(B.INTERVAL + 0.01)
         assert(g.state().by < 126)
         g.toggle()
         assert(g.paused() and host.pending() == 0)
+        H.view.canvas.on_tap(30, 100) -- 暂停中点画布：移动挡板并继续
+        assert(g.state().px == 20 and not g.paused() and host.pending() == 1)
+        g.toggle()
         g.state().score = 12
         g.stop()
         assert(H.saved["breakout"].state.score == 12)
