@@ -27,8 +27,8 @@ local function other(who) return who == HUMAN and AI or HUMAN end
 local function newBoard()
     local b = {}
     for i = 1, N * N do b[i] = EMPTY end
-    b[27], b[36] = AI, AI
-    b[28], b[35] = HUMAN, HUMAN
+    b[28], b[37] = AI, AI
+    b[29], b[36] = HUMAN, HUMAN
     return b
 end
 
