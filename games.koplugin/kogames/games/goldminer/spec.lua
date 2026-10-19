@@ -62,4 +62,11 @@ return function(t)
         end
         assert(found)
     end)
+
+    test("goldminer: armed dynamite survives a miss", function()
+        local s = { board = empty(), aim = 6, money = 0, dyn = 1, armed = true, time = 60, level = 1, shots = 0, mode = "normal" }
+        s.board[1] = "gold_s"
+        local res = C.fire(s, Rng.new(1))
+        assert(not res.hit and s.armed and s.dyn == 1)
+    end)
 end

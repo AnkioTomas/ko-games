@@ -150,8 +150,8 @@ function Core.fire(s, rng)
             end
             s.money = s.money + res.gain
         end
+        s.armed = false
     end
-    s.armed = false
     s.time = s.time - res.cost
     return res
 end

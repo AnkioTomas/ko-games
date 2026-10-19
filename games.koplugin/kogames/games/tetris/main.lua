@@ -207,6 +207,7 @@ function M.new(ctx)
             end,
             settings = { groups = { { label = T("速度"), options = sp } }, reset = function() self.newGame() end },
             buttons = {
+                { label = T("下一个：%s", s.next or "") },
                 {
                     { text = "←", enabled = live, callback = function() self.left() end },
                     { text = T("旋转"), enabled = live, callback = function() self.rotate() end },

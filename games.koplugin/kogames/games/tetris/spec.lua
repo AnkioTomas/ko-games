@@ -76,4 +76,10 @@ return function(t)
         assert(g.state().over and host.pending() == 0)
         assert(H.saved["stats_tetris"].best == g.state().score)
     end)
+
+    test("tetris shows the next piece", function()
+        local g = launch(TT)
+        local label = H.view.buttons[1].label
+        assert(label and label:find(g.state().next, 1, true))
+    end)
 end
