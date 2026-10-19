@@ -86,41 +86,68 @@ function M.new(ctx)
         end)
     end
 
+    local U, HUD = 5.5, 11
+    local CW, CH = 12 * U + 2, HUD + 16 * U + 2
+
     function self.render()
         local best = math.max(ctx:best("best") or 0, s.score)
-        local status = (T("得分 %d    最高 %d")):format(s.score, best)
-        if s.over then status = status .. (s.won and T("    通关！") or T("    游戏结束"))
-        elseif paused then status = status .. T("    已暂停") end
         local cells = {}
         for i, p in ipairs(s.body) do cells[(p[1] - 1) * s.w + p[2]] = i == 1 and "head" or "body" end
         local sp = {}
         for n = 1, #INTERVALS do
             sp[#sp + 1] = { text = tostring(n), selected = n == speed, callback = function() self.setSpeed(n) end }
         end
+        local live = not paused and not s.over
         ctx:render({
             title = T("贪吃蛇"),
-            status = status,
-            grid = {
-                rows = s.h, cols = s.w, gap = true, slots = true,
-                cell = function(r, c)
-                    local k = cells[(r - 1) * s.w + c]
-                    if k == "head" then return { fill = "black", mark = "white" } end
-                    if k == "body" then return { fill = "dark" } end
-                    if s.food and s.food[1] == r and s.food[2] == c then return { icon = "apple", icon_scale = 0.8 } end
+            canvas = {
+                w = CW, h = CH,
+                draw = function(d)
+                    d.icon("apple", 8, 5, 7)
+                    d.text(tostring(s.score), 22, 5, 5, "black")
+                    d.icon("crown", CW - 26, 5, 5)
+                    d.text(tostring(best), CW - 10, 5, 4.2, "black")
+                    local y0 = HUD
+                    d.frame(0.5, y0 - 0.5, s.w * U + 1, s.h * U + 1, "black", 0.7)
+                    for r = 1, s.h do
+                        for c = 1, s.w do
+                            local x, y = 1 + (c - 1) * U, y0 + (r - 1) * U
+                            local k = cells[(r - 1) * s.w + c]
+                            if k == "head" then
+                                d.rect(x + 0.2, y + 0.2, U - 0.4, U - 0.4, "black")
+                            elseif k == "body" then
+                                d.rect(x + 0.4, y + 0.4, U - 0.8, U - 0.8, "dark")
+                            elseif s.food and s.food[1] == r and s.food[2] == c then
+                                d.icon("apple", x + U / 2, y + U / 2, U - 0.5)
+                            else
+                                d.rect(x + 2, y + 2, 1, 1, "grey")
+                            end
+                        end
+                    end
+                    if s.over or paused then
+                        local bx, by = 1 + s.w * U / 2, y0 + s.h * U / 2
+                        d.rect(bx - 17, by - 11, 34, 22, "white")
+                        d.frame(bx - 17, by - 11, 34, 22, "black", 0.7)
+                        d.icon(s.over and "restart" or "play", bx, by, 14)
+                    end
+                end,
+                on_tap = function()
+                    if s.over then self.newGame() elseif paused then self.toggle() end
                 end,
             },
             on_swipe = function(d) self.input(d) end,
             settings = { groups = { { label = T("速度"), options = sp } }, reset = function() self.newGame() end },
             buttons = {
                 {
-                    { text = "←", callback = function() self.input("west") end },
-                    { text = "↑", callback = function() self.input("north") end },
-                    { text = "↓", callback = function() self.input("south") end },
-                    { text = "→", callback = function() self.input("east") end },
+                    { icon = "left", enabled = not s.over, callback = function() self.input("west") end },
+                    { icon = "up", enabled = not s.over, callback = function() self.input("north") end },
+                    { icon = "down", enabled = not s.over, callback = function() self.input("south") end },
+                    { icon = "right", enabled = not s.over, callback = function() self.input("east") end },
                 },
-                { { text = s.over and T("再来一局") or (paused and (s.score == 0 and #s.body == 3 and T("开始") or T("继续")) or T("暂停")),
-                    callback = s.over and function() self.newGame() end or function() self.toggle() end },
-                  { menu = true, text = T("新游戏"), callback = function() self.newGame() end } },
+                {
+                    { menu = true, text = paused and T("继续") or T("暂停"), enabled = not s.over, callback = function() self.toggle() end },
+                    { menu = true, text = T("新游戏"), callback = function() self.newGame() end },
+                },
             },
         })
     end

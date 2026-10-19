@@ -33,7 +33,7 @@ return function(t)
 
     test("snake session ticks on the virtual clock and stops cleanly", function()
         local g, host, ctx = launch(S)
-        assert(H.view.grid and H.view.grid.rows == 16 and #H.view.buttons >= 2)
+        assert(H.view.canvas and #H.view.buttons >= 1)
         assert(host.pending() == 0, "must wait for start")
         local shows = H.shows
         host.advance(10)
