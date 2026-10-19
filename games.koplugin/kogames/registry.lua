@@ -14,7 +14,7 @@ Registry.LIST = { "g2048", "minesweeper", "sudoku", "gomoku", "xiangqi",
     "reversi", "fifteen", "twentyfour", "memory", "nonogram",
     "mastermind", "hanoi", "goldminer", "lianliankan", "match3",
     "tictactoe", "lightsout", "pegsolitaire", "numbombs", "watersort",
-    "doudizhu", "paodekuai", "bubbleshooter" }
+    "doudizhu", "paodekuai", "bubbleshooter", "dino", "mario", "flappy", "breakout" }
 
 function Registry.all()
     local out = {}
