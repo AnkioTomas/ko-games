@@ -358,4 +358,5 @@ return {
     ["目标：尽量多得分，别让泡泡压到最底下的发射线。\n点棋盘的一列或点 ◀ ▶ 选择发射的列，点「发射」，泡泡会沿这一列飞到最上面的泡泡下方停住（虚线是路径）。\n同色泡泡上下左右相连 3 个以上就消除；消除后不再与最上面一行相连的泡泡会掉落，掉落的分更高。\n每连续几次没有消除，整体会下压一行（难度越高越频繁）。清空全部泡泡有额外奖励。\n「换弹」交换当前和下一个泡泡（左下角深色的是下一个）。"] = "Goal: score as much as you can and keep the bubbles from reaching the bottom firing line.\nTap a column or use ◀ ▶ to choose it, then Fire. The bubble flies up that column and stops under the topmost bubble (dotted path).\nA group of 3 or more same-coloured bubbles connected up/down/left/right pops; bubbles no longer connected to the top row fall and score more.\nAfter several shots in a row without a pop, everything moves down a row (more often on harder levels). Clearing the whole board gives a bonus.\nSwap exchanges the current and next bubble (the dark one at the bottom corner is next).",
     ["这一列已经满了"] = "This column is full",
     ["选一列发射泡泡，三个同色相连即消除"] = "Fire a bubble up a column; match 3 or more of a colour",
+    ["　黑底是地主"] = "　Black = landlord",
 }

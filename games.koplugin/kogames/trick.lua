@@ -221,7 +221,7 @@ function Core.define(spec)
     function M.new(ctx)
         local self = {}
         local s, sel = nil, {}
-        local cols = spec.mode == "ddz" and 10 or 8
+        local cols = 9
 
         local function persist() ctx:save({ state = s }) end
 
@@ -279,12 +279,23 @@ function Core.define(spec)
             return seat == 2 and T("下家") or T("上家")
         end
 
-        local function info(seat)
-            local role = (s.landlord == seat) and T("（地主）") or ""
+        -- 桌面一行：座位名、剩余张数、这一手打出的牌（或「不要」）
+        local function tableRow(seat, c)
             local a = s.shown[seat]
-            local line
-            if a == false then line = T("不要") elseif a then line = Core.label(a) else line = "" end
-            return T("%s%s 剩 %d 张　%s", who(seat), role, #s.hands[seat], line)
+            local slots = cols - 2
+            if c == 1 then
+                local cell = { text = who(seat), scale = 0.2, fill = "grey" }
+                if s.landlord == seat then cell.fill, cell.color = "black", "white" end
+                return cell
+            elseif c == 2 then
+                return { text = tostring(#s.hands[seat]), scale = 0.34, fill = (s.turn == seat and s.phase == "play") and "dark" or nil }
+            end
+            local i = c - 2
+            if a == false then return i == 1 and { text = T("不要"), scale = 0.2 } or nil end
+            if not a then return nil end
+            if #a > slots and i == slots then return { text = "+" .. (#a - slots + 1), scale = 0.26 } end
+            local id = a[#a - i + 1]
+            return id and Core.cardCell(id) or nil
         end
 
         function self.render()
@@ -303,14 +314,8 @@ function Core.define(spec)
             local st = ctx.host:load("stats_" .. ctx.id)
             if st and st.games then status = status .. T("    胜 %d / %d", st.wins or 0, st.games) end
 
-            rows[#rows + 1] = { label = info(3) }
-            rows[#rows + 1] = { label = info(2) }
             if s.mode == "ddz" and s.landlord then
-                rows[#rows + 1] = { label = T("底牌：%s", Core.label(s.bottom)) }
-            end
-            local human = s.shown[1]
-            if s.phase ~= "bid" and (human or human == false) then
-                rows[#rows + 1] = { label = T("你出了：%s", human == false and T("不要") or Core.label(human)) }
+                rows[#rows + 1] = { label = T("底牌：%s", Core.label(s.bottom)) .. T("　黑底是地主") }
             end
 
             if s.phase == "bid" then
@@ -352,13 +357,14 @@ function Core.define(spec)
                 title = spec.title,
                 status = status,
                 grid = {
-                    rows = 2, cols = cols_, gap = true, ratio = 1.35,
+                    rows = 5, cols = cols_, gap = true, ratio = 1.35,
                     cell = function(r, c)
-                        local id = disp[(r - 1) * cols_ + c]
+                        if r <= 3 then return tableRow(r == 1 and 3 or r == 2 and 2 or 1, c) end
+                        local id = disp[(r - 4) * cols_ + c]
                         return id and Core.cardCell(id, sel[id]) or nil
                     end,
                     on_tap = function(r, c)
-                        local id = disp[(r - 1) * cols_ + c]
+                        local id = r > 3 and disp[(r - 4) * cols_ + c]
                         if not id or s.phase ~= "play" then return end
                         sel[id] = not sel[id] or nil
                         self.render()
