@@ -237,23 +237,12 @@ end
 
 function Core.swap(s) s.cur, s.nxt = s.nxt, s.cur end
 
-local function bubble(d, x, y, k, r)
-    r = r or R - 0.5
-    if k == 1 then
-        d.circle(x, y, r, "black")
-    elseif k == 2 then
-        d.ring(x, y, r, "black", 1.4)
-    elseif k == 3 then
-        d.circle(x, y, r, "black") d.circle(x, y, r - 1, "grey")
-    elseif k == 4 then
-        d.circle(x, y, r, "black") d.circle(x, y, r - 1, "dark")
-    else
-        d.ring(x, y, r, "black", 1.4) d.circle(x, y, r * 0.4, "black")
-    end
+local function bubble(d, x, y, k, size)
+    d.icon("b" .. k, x, y, size or 12)
 end
 
 local M = { id = "bubbleshooter", title = T("泡泡龙"), icon = "bubble_chart", tier = "B", desc = T("经典泡泡龙：瞄准发射，三个同色相连即消除"), core = Core,
-    help = T("目标：消除全部泡泡过关，别让泡泡越过底部的死线。\n点画面任意位置会朝那里立即发射；也可用 ◀ ▶ 每次微调 5°，再点「发射」。虚线是飞行路径，碰到左右墙会反弹。\n泡泡停在最近的蜂窝格，同色 3 个以上相连就消除；消除后不再与顶部相连的泡泡会一起掉落，得分更高。\n连续几发没有消除，整体会下压一行（画面会显示还剩几发）。点「换泡」或点左下角的泡泡交换当前与下一个。\n每过一关颜色和行数会增加，不同颜色用不同的图案区分：实心、空心、浅灰、深灰、同心圆。") }
+    help = T("目标：消除全部泡泡过关，别让泡泡越过底部的死线。\n点画面任意位置会朝那里立即发射。虚线是飞行路径，碰到左右墙会反弹。\n泡泡停在最近的蜂窝格，同色 3 个以上相连就消除；消除后不再与顶部相连的泡泡会一起掉落，得分更高。\n连续几发没有消除，整体会下压一行（画面会显示还剩几发）。点左下角的「下一个」泡泡交换当前与下一个。\n每过一关颜色和行数会增加，不同颜色用不同的图案区分：实心、空心、浅灰、深灰、同心圆。") }
 
 function M.new(ctx)
     local self = {}
@@ -291,14 +280,9 @@ function M.new(ctx)
         return res
     end
 
-    function self.nudge(delta)
-        s.aim = Core.clampAngle(s.aim + delta)
-        self.render()
-    end
-
     function self.tap(x, y)
-        if Core.over(s) then return end
-        if (x - 20) ^ 2 + (y - (SY + 4)) ^ 2 < 64 then
+        if Core.over(s) then fresh() return end
+        if (x - 20) ^ 2 + (y - (SY + 4)) ^ 2 < 81 then
             Core.swap(s) persist() self.render() return
         end
         self.fire(Core.angleTo(x, y))
@@ -313,18 +297,8 @@ function M.new(ctx)
         for _, m in ipairs(MODES) do
             mode_row[#mode_row + 1] = { text = T(m.label), selected = m.id == s.mode, callback = function() fresh(m.id) end }
         end
-        local buttons
-        if over then
-            buttons = { { label = T("泡泡越过死线，游戏结束") }, { { text = T("重新开始"), callback = function() fresh() end } } }
-        else
-            buttons = {
-                { { text = "◀", callback = function() self.nudge(-5) end },
-                    { text = T("发射"), callback = function() self.fire() end },
-                    { text = "▶", callback = function() self.nudge(5) end },
-                    { text = T("换泡"), callback = function() Core.swap(s) persist() self.render() end } },
-            }
-            if last then table.insert(buttons, 1, { label = last }) end
-        end
+        local buttons = {}
+        if last and not over then buttons[1] = { label = last } end
         buttons[#buttons + 1] = { { menu = true, text = T("新游戏"), callback = function() fresh() end } }
         local path = (not over) and Core.trace(s, s.aim) or nil
         ctx:render({
@@ -346,7 +320,7 @@ function M.new(ctx)
                     local dy = R + (DEAD_ROW - 2) * P + R + 1
                     for x = 2, W - 4, 6 do d.line(x, dy, x + 3, dy, "dark", 0.6) end
                     if over then
-                        d.text(T("游戏结束"), W / 2, dy + 8, 8, "black")
+                        d.icon("restart", W / 2, dy + 12, 16)
                         return
                     end
                     if path then
@@ -365,12 +339,14 @@ function M.new(ctx)
                         d.ring(gx, gy, R - 0.5, "dark", 0.5)
                     end
                     local a = math.rad(s.aim)
+                    d.icon("base", SX, SY + 4, 14)
                     d.line(SX, SY, SX + math.sin(a) * 11, SY - math.cos(a) * 11, "black", 2.2)
                     bubble(d, SX, SY, s.cur)
-                    bubble(d, 20, SY + 4, s.nxt, R * 0.8)
+                    bubble(d, 20, SY + 4, s.nxt, 10)
+                    d.icon("swap", 20, SY - 6, 5)
                     for i = 1, s.period do
                         local x = W - 6 - (s.period - i) * 3.4
-                        if i <= s.misses then d.circle(x, SY + 4, 1.2, "black") else d.ring(x, SY + 4, 1.4, "black", 0.5) end
+                        d.icon(i <= s.misses and "b1" or "b2", x, SY + 4, 3)
                     end
                 end,
                 on_tap = function(x, y) self.tap(x, y) end,

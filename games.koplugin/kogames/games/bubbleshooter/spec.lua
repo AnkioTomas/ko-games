@@ -86,11 +86,11 @@ return function(t)
         H.saved, H.view = {}, nil
         local g = require("kogames.registry").launch(H.host, require("kogames.games.bubbleshooter.main"), nil)
         assert(H.view.canvas and H.view.canvas.w)
-        g.nudge(5) g.nudge(5)
-        assert(g.state().aim == 10)
-        for _ = 1, 20 do g.nudge(5) end
-        assert(g.state().aim == 75)
-        local cur = g.state().cur
+        local cur, nxt = g.state().cur, g.state().nxt
+        H.view.canvas.on_tap(20, C.SY + 4)
+        assert(g.state().cur == nxt and g.state().nxt == cur)
+        assert(#(H.view.buttons or {}) == 0)
+        cur = g.state().cur
         H.view.canvas.on_tap(30, 60)
         assert(H.saved.bubbleshooter and H.saved.bubbleshooter.state and g.state().aim < 0)
         local snap = g.state().score
