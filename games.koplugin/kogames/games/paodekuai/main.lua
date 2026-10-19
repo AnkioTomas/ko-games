@@ -1,0 +1,9 @@
+--[[--
+跑得快：一个玩家对两个电脑，三人各 16 张（48 张牌，无王），先出完者获胜。
+牌型规则见 kogames/cardrules.lua，流程见 kogames/trick.lua。
+--]]
+local T = require("kogames.l10n")
+return require("kogames.trick").define({
+    id = "paodekuai", mode = "pdk", title = T("跑得快"), icon = "extension", desc = T("三人各 16 张，先出完者获胜"),
+    help = T("三人玩 48 张牌（无王），每人 16 张，谁先把牌出完谁赢，其余两家都输。\n持黑桃 3 的人先出，首手必须带黑桃 3。\n点牌选中，点「出牌」打出；要压上一手必须出同牌型且更大的牌，有牌能压时必须出，不能不要。\n牌型：单张、对子、顺子（5 张起）、连对（2 对起）、三带二（最后一手可以少带）、飞机、炸弹（四张同点，压一切）。大小：2 > A > K … > 3。"),
+})
