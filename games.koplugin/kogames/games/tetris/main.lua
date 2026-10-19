@@ -226,11 +226,11 @@ function M.new(ctx)
                     for _, q in ipairs(cells) do
                         d.rect(ox + q[2] * 3, 6 + q[1] * 3, 2.8, 2.8, "black")
                     end
-                    d.text(tostring(s.score), px + 12, 31, 4.2, "black")
+                    d.text(tostring(s.score), px + 12, 32, 4.2, "black")
                     for k, row in ipairs({ { "level", Core.level(s) }, { "rows", s.lines }, { "crown", best } }) do
-                        local y = 42 + (k - 1) * 9
-                        d.icon(row[1], px + 3, y, 5)
-                        d.text(tostring(row[2]), px + 7 + #tostring(row[2]) * 1.4, y, 3.4, "black")
+                        local y = 46 + (k - 1) * 10
+                        d.icon(row[1], px + 3, y, 4.5)
+                        d.text(tostring(row[2]), px + 23 - #tostring(row[2]) * 1.85, y, 3.4, "black")
                     end
                 end,
                 on_tap = function(x)
