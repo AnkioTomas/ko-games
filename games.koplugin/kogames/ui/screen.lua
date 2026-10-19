@@ -18,6 +18,7 @@ view = {
     on_tap = function(x, y) end,               -- 虚拟坐标
   },
   on_swipe = function(dir) end,                -- dir = "north"|"south"|"east"|"west"
+  -- 按钮项可带 icon = "名称"（SVG，居中显示，替代文字）
   buttons = { { {text=, callback=, enabled=, selected=}, ... } 一行, { label = "分组标题" } },
   help    = { title=, text= },                           -- 玩法说明：标题栏右上角 ? 按钮；help_now=true 时进入即弹出
   settings = { groups = { { label=, options = { {text=, selected=, callback=} } } }, reset = fn, actions = { {text=, enabled=, callback=} } },
@@ -452,14 +453,25 @@ function GameScreen.open(view, on_close)
     return GameScreen:new{ view = view, on_close = on_close }
 end
 
-local function buttonRow(k, entries, w)
+local function iconButton(k, b, w, assets)
+    local h = k.btn_h
+    local isz = math.floor(h * 0.62)
+    local enabled = b.enabled ~= false and b.callback ~= nil
+    local icon = IconWidget:new{ name = b.icon, size = isz, assets = assets }
+    local frame = FrameContainer:new{ width = w, height = h, padding = 0, radius = px(6), color = enabled and k.ink or RULE,
+        bordersize = b.selected and px(3) or px(1), background = Blitbuffer.COLOR_WHITE,
+        CenterContainer:new{ dimen = Geom:new{ w = w - px(2), h = h - px(2) }, icon } }
+    return tap(frame, w, h, enabled and b.callback or nil)
+end
+
+local function buttonRow(k, entries, w, assets)
     local gap = px(8)
     local n = #entries
     local bw = math.floor((w - gap * (n - 1)) / n)
     local row = HorizontalGroup:new{ align = "center" }
     for i, b in ipairs(entries) do
         if i > 1 then row[#row + 1] = HorizontalSpan:new{ width = gap } end
-        row[#row + 1] = k.button(b.text, bw, b.callback, b)
+        row[#row + 1] = b.icon and iconButton(k, b, bw, assets) or k.button(b.text, bw, b.callback, b)
     end
     return row
 end
@@ -620,7 +632,7 @@ function GameScreen:init()
             add(k.line("caption", entry.label, inner, true), nil)
             add(VerticalSpan:new{ width = px(6) }, px(6))
         else
-            add(buttonRow(k, entry, inner), k.btn_h)
+            add(buttonRow(k, entry, inner, v.assets), k.btn_h)
             add(VerticalSpan:new{ width = gap }, gap)
         end
     end
