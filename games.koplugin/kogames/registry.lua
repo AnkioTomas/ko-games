@@ -11,9 +11,9 @@ local ROOT = (debug.getinfo(1, "S").source:match("^@(.*/)[^/]*$") or "./")
 Registry.LIST = { "g2048", "minesweeper", "sudoku", "gomoku", "xiangqi",
     "chess", "go9", "checkers", "sokoban", "klondike",
     "freecell", "spider", "tetris", "snake", "connect4",
-    "reversi", "fifteen", "memory",
+    "reversi", "fifteen",
     "goldminer", "lianliankan", "match3",
-    "tictactoe", "watersort",
+    "tictactoe",
     "doudizhu", "paodekuai", "bubbleshooter", "dino", "mario", "flappy", "breakout" }
 
 function Registry.all()
