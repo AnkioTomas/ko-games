@@ -15,6 +15,22 @@ return function(t)
         assert(#C.legalMoves(s.board, -1) == 44)
     end)
 
+    test("xiangqi perft from the start matches known counts (44, 1920, 79666)", function()
+        local function perft(b, side, d)
+            if d == 0 then return 1 end
+            local n = 0
+            for _, mv in ipairs(C.legalMoves(b, side)) do
+                local nb = {}
+                for i = 1, 90 do nb[i] = b[i] end
+                nb[mv % 128], nb[(mv - mv % 128) / 128] = nb[(mv - mv % 128) / 128], 0
+                n = n + perft(nb, -side, d - 1)
+            end
+            return n
+        end
+        local b = C.fresh().board
+        assert(perft(b, 1, 1) == 44 and perft(b, 1, 2) == 1920 and perft(b, 1, 3) == 79666)
+    end)
+
     test("xiangqi horse leg, cannon screen, elephant river", function()
         local s = C.fresh()
         local d = C.destinations(s.board, at(10, 2)) -- horse: legs blocked on sides only up front free
