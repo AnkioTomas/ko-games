@@ -237,7 +237,6 @@ function Core.define(spec)
     function M.new(ctx)
         local self = {}
         local s, sel = nil, {}
-        local cols = spec.mode == "ddz" and 10 or 9
 
         local function persist() ctx:save({ state = s }) end
 
@@ -290,58 +289,81 @@ function Core.define(spec)
             self.render()
         end
 
-        local function who(seat)
-            if seat == 1 then return T("你") end
-            return seat == 2 and T("下家") or T("上家")
+        local CW, CH = 100, 108
+        local CARD_W, CARD_H = 11, 17
+        local PW, PH = 9, 13.5
+
+        -- 一张牌：左上角是点数和花色，叠放时只露出这一角
+        local function drawCard(d, id, x, y, w, h, selected)
+            local v = R.value(id)
+            local red = v < 16 and RED[R.suit(id)]
+            d.rect(x, y, w, h, selected and "black" or red and "grey" or "white")
+            d.frame(x, y, w, h, "black", 0.5)
+            local ink = selected and "white" or "black"
+            local cx = x + 3.3
+            if v >= 16 then
+                d.text(v == 16 and "小" or "大", cx, y + 3.4, 2.6, ink)
+                d.text("王", cx, y + 6.6, 2.6, ink)
+                return
+            end
+            local rank = R.rankText(v)
+            d.text(rank, cx, y + 3.4, #rank > 1 and 2.9 or 3.6, ink)
+            d.icon("suit_" .. R.SUIT_ICONS[R.suit(id)] .. (selected and "_w" or ""), cx, y + 8.2, 3.2)
         end
 
-        -- 桌面一行：座位名、剩余张数、这一手打出的牌（或「不要」）
-        local function tableRow(seat, c)
-            local a = s.shown[seat]
-            local slots = cols - 2
-            if c == 1 then
-                local cell = { text = who(seat), scale = 0.2, fill = "grey" }
-                if s.landlord == seat then cell.fill, cell.color = "black", "white" end
-                return cell
-            elseif c == 2 then
-                return { text = tostring(#s.hands[seat]), scale = 0.34, fill = (s.turn == seat and s.phase == "play") and "dark" or nil }
+        -- 一行打出的牌；align = "left" | "right" | "center"
+        local function drawPlayed(d, cards, y, align)
+            local x0, x1 = 15, CW - 2
+            local n = #cards
+            local step = math.min(4.4, n > 1 and (x1 - x0 - PW) / (n - 1) or 4.4)
+            local width = PW + (n - 1) * step
+            local x = align == "left" and x0 or align == "right" and x1 - width or x0 + (x1 - x0 - width) / 2
+            for i = n, 1, -1 do drawCard(d, cards[i], x + (n - i) * step, y, PW, PH) end
+        end
+
+        local function drawBack(d, x, y, n)
+            d.rect(x, y, 6, 8.5, "dark")
+            d.frame(x, y, 6, 8.5, "black", 0.4)
+            d.text(tostring(n), x + 10.5, y + 4.4, 3.6, "black")
+        end
+
+        local function drawSeat(d, seat, x, y)
+            local turn = s.turn == seat and s.phase ~= "done"
+            if turn then d.ring(x + 5, y + 6, 8, "black", 0.8) end
+            d.icon("person", x + 5, y + 7, 9)
+            if s.landlord == seat then d.icon("crown", x + 5, y - 1.5, 5) end
+            drawBack(d, x + 15, y + 2, #s.hands[seat])
+        end
+
+        -- 手牌：不超过 10 张排一行，更多时分两行错落摆放
+        local function handLayout(n)
+            local pos = {}
+            local rows = n > 10 and 2 or 1
+            local per = math.ceil(n / rows)
+            local step = math.min(9, (CW - 2 - CARD_W) / math.max(per - 1, 1))
+            for i = 1, n do
+                local row = rows == 1 and 1 or (i <= per and 1 or 2)
+                local k = row == 1 and i or i - per
+                local cnt = row == 1 and per or n - per
+                local width = CARD_W + (cnt - 1) * step
+                pos[i] = { x = (CW - width) / 2 + (k - 1) * step, y = rows == 1 and 88 or (row == 1 and 74 or 87) }
             end
-            local i = c - 2
-            if a == false then return i == 1 and { text = T("不要"), scale = 0.2 } or nil end
-            if not a then return nil end
-            if #a > slots and i == slots then return { text = "+" .. (#a - slots + 1), scale = 0.26 } end
-            local id = a[#a - i + 1]
-            return id and Core.cardCell(id) or nil
+            return pos
         end
 
         function self.render()
-            local rows, cols_ = {}, cols
-            local status
-            if s.phase == "bid" then
-                status = T("叫地主？")
-                for seat = 3, 2, -1 do
-                    if s.bids and s.bids[seat] == false then status = status .. "    " .. who(seat) .. T("不叫") end
-                end
-            elseif s.phase == "done" then
-                local won = Core.humanWon(s)
-                status = won and T("你赢了！") or T("你输了")
-                if s.mode == "ddz" then status = status .. T("    倍数 ×%d", s.mult) .. (s.spring and T("（春天）") or "") end
-            else
-                status = s.turn == 1 and (s.last and T("轮到你出牌（压过上一手）") or T("轮到你出牌（任意牌型）")) or T("等待…")
-                if s.mode == "ddz" then status = status .. T("    倍数 ×%d", s.mult) end
-            end
-            local st = ctx.host:load("stats_" .. ctx.id)
-            if st and st.games then status = status .. T("    胜 %d / %d", st.wins or 0, st.games) end
+            local disp = {}
+            for i = #s.hands[1], 1, -1 do disp[#disp + 1] = s.hands[1][i] end
+            local pos = handLayout(#disp)
+            local mine = s.turn == 1
+            local pick = selected()
 
-            if s.mode == "ddz" and s.landlord then
-                rows[#rows + 1] = { label = T("底牌：%s", Core.label(s.bottom)) .. T("　黑底是地主") }
-            end
-
+            local rows = {}
             if s.phase == "bid" then
-                rows[#rows + 1] = { { text = T("叫地主"), enabled = s.turn == 1, callback = function()
+                rows[#rows + 1] = { { text = T("叫地主"), enabled = mine, callback = function()
                     if Core.bid(s, 1, true) == "redeal" then return end
                     afterHuman()
-                end }, { text = T("不叫"), enabled = s.turn == 1, callback = function()
+                end }, { text = T("不叫"), enabled = mine, callback = function()
                     if Core.bid(s, 1, false) == "redeal" then
                         ctx:notify(T("没人叫地主，重新发牌"))
                         s = Core.deal(ctx.rng, spec.mode)
@@ -351,17 +373,15 @@ function Core.define(spec)
             elseif s.phase == "done" then
                 rows[#rows + 1] = { { text = T("再来一局"), callback = fresh } }
             else
-                local mine = s.turn == 1
-                local pick = selected()
                 rows[#rows + 1] = {
-                    { text = T("提示"), enabled = mine, callback = hint },
-                    { text = T("不要"), enabled = mine and s.last ~= nil, callback = function()
+                    { key = "hint", icon = "bulb", enabled = mine, callback = hint },
+                    { key = "pass", icon = "cross", enabled = mine and s.last ~= nil, callback = function()
                         local ok, err = Core.pass(s, 1)
                         if not ok then if err then ctx:notify(err) end return end
                         s.shown[1] = false
                         afterHuman()
                     end },
-                    { text = T("出牌"), enabled = mine and #pick > 0, callback = function()
+                    { key = "play", icon = "check", enabled = mine and #pick > 0, callback = function()
                         local ok, err = Core.play(s, 1, selected())
                         if not ok then ctx:notify(err) return end
                         afterHuman()
@@ -370,25 +390,70 @@ function Core.define(spec)
             end
             rows[#rows + 1] = { { menu = true, text = T("新游戏"), callback = fresh } }
 
-            local disp = {}
-            for i = #s.hands[1], 1, -1 do disp[#disp + 1] = s.hands[1][i] end
+            local st = ctx.host:load("stats_" .. ctx.id)
             ctx:render({
                 title = spec.title,
-                status = status,
-                grid = {
-                    rows = 5, cols = cols_, gap = true, ratio = 1.35,
-                    cell = function(r, c)
-                        if r <= 3 then return tableRow(r == 1 and 3 or r == 2 and 2 or 1, c) end
-                        local id = disp[(r - 4) * cols_ + c]
-                        return id and Core.cardCell(id, sel[id]) or nil
+                canvas = {
+                    w = CW, h = CH,
+                    draw = function(d)
+                        drawSeat(d, 3, 3, 8)
+                        drawSeat(d, 2, CW - 31, 8)
+                        if s.mode == "ddz" and s.landlord then
+                            for i, id in ipairs(s.bottom) do drawCard(d, id, CW / 2 - 15 + (i - 1) * 10, 2, 9, 12) end
+                            d.text("×" .. s.mult, CW / 2, 19, 3.8, "black")
+                        elseif s.mode == "ddz" then
+                            d.text("×" .. s.mult, CW / 2, 10, 3.8, "black")
+                        end
+                        d.frame(1, 23, CW - 2, 64, "dark", 0.4)
+                        local lines = { { 3, "left" }, { 2, "right" }, { 1, "center" } }
+                        for k, ln in ipairs(lines) do
+                            local y = 26 + (k - 1) * 20
+                            local seat = ln[1]
+                            if seat == 1 then
+                                d.icon("person", 8, y + 7, 8)
+                                if s.landlord == 1 then d.icon("crown", 8, y - 0.5, 4.5) end
+                            end
+                            local a = s.shown[seat]
+                            if a == false then d.icon("cross", ln[2] == "right" and CW - 10 or 21, y + 7, 7)
+                            elseif a then drawPlayed(d, a, y, ln[2]) end
+                        end
+                        if s.phase == "bid" then
+                            d.text(T("叫地主？"), CW / 2, 45, 6, "black")
+                            for seat = 3, 2, -1 do
+                                if s.bids and s.bids[seat] == false then
+                                    d.icon("cross", seat == 3 and 21 or CW - 10, seat == 3 and 33 or 53, 7)
+                                end
+                            end
+                        elseif s.phase == "done" then
+                            d.rect(CW / 2 - 24, 36, 48, 26, "white")
+                            d.frame(CW / 2 - 24, 36, 48, 26, "black", 0.7)
+                            d.text(Core.humanWon(s) and T("你赢了！") or T("你输了"), CW / 2, 45, 6.5, "black")
+                            if s.mode == "ddz" then
+                                d.text("×" .. s.mult .. (s.spring and T("（春天）") or ""), CW / 2, 55, 4, "black")
+                            end
+                        end
+                        if st and st.games then
+                            d.text((T("    胜 %d / %d", st.wins or 0, st.games):gsub("^%s+", "")), CW - 14, 82.3, 2.8, "dark")
+                        end
+                        for i, id in ipairs(disp) do
+                            local q = pos[i]
+                            drawCard(d, id, q.x, q.y - (sel[id] and 4 or 0), CARD_W, CARD_H, sel[id])
+                        end
                     end,
-                    on_tap = function(r, c)
-                        local id = r > 3 and disp[(r - 4) * cols_ + c]
-                        if not id or s.phase ~= "play" then return end
-                        sel[id] = not sel[id] or nil
-                        self.render()
+                    on_tap = function(x, y)
+                        if s.phase ~= "play" then return end
+                        for i = #disp, 1, -1 do
+                            local q, id = pos[i], disp[i]
+                            local top = q.y - (sel[id] and 4 or 0)
+                            if x >= q.x and x < q.x + CARD_W and y >= top and y < top + CARD_H then
+                                sel[id] = not sel[id] or nil
+                                self.render()
+                                return
+                            end
+                        end
                     end,
                 },
+                settings = { groups = {}, reset = fresh },
                 buttons = rows,
             })
         end
@@ -406,6 +471,7 @@ function Core.define(spec)
         end
 
         self.state = function() return s end
+        self.selected = selected
         self.select = function(ids) sel = {} for _, id in ipairs(ids) do sel[id] = true end end
         self.advance = function() advance() persist() self.render() end
         return self

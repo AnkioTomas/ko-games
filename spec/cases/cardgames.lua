@@ -144,7 +144,7 @@ return function(t)
         assert(#pick == 1 and R.value(pick[1]) == 13)
     end)
 
-    test("trick: landlord's 20 cards are all visible in the grid", function()
+    test("trick: landlord's 20 cards are all all tappable on the table", function()
         H.saved, H.view = {}, nil
         local def = require("kogames.games.doudizhu.main")
         local g = require("kogames.registry").launch(H.host, def, nil)
@@ -154,9 +154,17 @@ return function(t)
         for i = 1, 20 do all[i] = i end
         s.hands[1] = all
         g.render()
-        local grid, n = H.view.grid, 0
-        for r = 4, grid.rows do for c = 1, grid.cols do if grid.cell(r, c) then n = n + 1 end end end
-        assert(n == 20, n)
+        local seen, count = {}, 0
+        for x = 1, 99, 0.5 do
+            for y = 70, 106, 1 do
+                H.view.canvas.on_tap(x, y)
+                for _, id in ipairs(g.selected()) do
+                    if not seen[id] then seen[id], count = true, count + 1 end
+                end
+                g.select({})
+            end
+        end
+        assert(count == 20, count)
     end)
 
     test("trick: sessions render and complete via hint", function()
@@ -170,14 +178,14 @@ return function(t)
                 local s = g.state()
                 local function find(text)
                     for _, row in ipairs(H.view.buttons) do
-                        for _, b in ipairs(row) do if b.text == text and b.enabled ~= false then return b end end
+                        for _, b in ipairs(row) do if (b.text == text or b.key == text) and b.enabled ~= false then return b end end
                     end
                 end
                 if s.phase == "bid" then
                     (find("叫地主") or find("不叫")).callback()
                 else
-                    find("提示").callback()
-                    local play, pass = find("出牌"), find("不要")
+                    find("hint").callback()
+                    local play, pass = find("play"), find("pass")
                     if play then play.callback() elseif pass then pass.callback() end
                 end
             end
