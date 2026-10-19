@@ -12,7 +12,7 @@ Registry.LIST = { "g2048", "minesweeper", "sudoku", "gomoku", "xiangqi",
     "chess", "go9", "checkers", "sokoban", "klondike",
     "freecell", "spider", "tetris", "snake", "connect4",
     "reversi", "fifteen", "twentyfour", "memory", "nonogram",
-    "mastermind", "hanoi" }
+    "mastermind", "hanoi", "goldminer", "lianliankan", "match3" }
 
 function Registry.all()
     local out = {}
