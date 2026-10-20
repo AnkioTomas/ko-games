@@ -1,27 +1,38 @@
 --[[--
-九路围棋：玩家执黑先行，启发式 AI 执白。提子、打劫（简单劫）、禁自杀、虚着；双方连续虚着终局，
-按数子法（中国规则）计分，白贴 7.5 目。棋盘下标 (r-1)*9+c。
+围棋（9/13/19 路可选）：玩家执黑先行，启发式 AI 执白。提子、打劫（简单劫）、禁自杀、虚着；双方连续虚着终局，
+按数子法（中国规则）计分，白贴 7.5 目。棋盘下标 (r-1)*n+c，路数 n 由 #board 推出。
 state = { board, turn, prev, passes, over, history, last }
 --]]
 local T = require("kogames.l10n")
-local N = 9
 local EMPTY, HUMAN, AI = 0, 1, 2
 local KOMI = 7.5
 local MAX_HISTORY = 60
 
 local Core = {}
 
-local NEI = {}
-for r = 1, N do
-    for c = 1, N do
-        local l = {}
-        if r > 1 then l[#l + 1] = (r - 2) * N + c end
-        if r < N then l[#l + 1] = r * N + c end
-        if c > 1 then l[#l + 1] = (r - 1) * N + c - 1 end
-        if c < N then l[#l + 1] = (r - 1) * N + c + 1 end
-        NEI[(r - 1) * N + c] = l
+local SIZES = { 9, 13, 19 }
+local DEFAULT_SIZE = 9
+local STARS = { [9] = { 3, 5, 7 }, [13] = { 4, 7, 10 }, [19] = { 4, 10, 16 } }
+
+local NEI_CACHE = {}
+local function neighbors(n)
+    if NEI_CACHE[n] then return NEI_CACHE[n] end
+    local nei = {}
+    for r = 1, n do
+        for c = 1, n do
+            local l = {}
+            if r > 1 then l[#l + 1] = (r - 2) * n + c end
+            if r < n then l[#l + 1] = r * n + c end
+            if c > 1 then l[#l + 1] = (r - 1) * n + c - 1 end
+            if c < n then l[#l + 1] = (r - 1) * n + c + 1 end
+            nei[(r - 1) * n + c] = l
+        end
     end
+    NEI_CACHE[n] = nei
+    return nei
 end
+
+local function sizeOf(board) return math.floor(math.sqrt(#board) + 0.5) end
 
 local function other(who) return who == HUMAN and AI or HUMAN end
 
@@ -29,13 +40,14 @@ local function key(board) return table.concat(board) end
 
 local function copy(b)
     local n = {}
-    for i = 1, N * N do n[i] = b[i] end
+    for i = 1, #b do n[i] = b[i] end
     return n
 end
 
 --- idx 处棋串：返回 { 棋子下标列表, 气数 }
 local function group(board, idx)
     local who = board[idx]
+    local NEI = neighbors(sizeOf(board))
     local seen, stack, list, libs, nlib = { [idx] = true }, { idx }, {}, {}, 0
     while #stack > 0 do
         local i = table.remove(stack)
@@ -57,6 +69,7 @@ Core.group = group
 --- 试着落子：返回新棋盘与提子数；非法返回 nil, 原因（"occupied" | "suicide" | "ko"）
 function Core.place(board, idx, who, prev)
     if not idx or board[idx] ~= EMPTY then return nil, "occupied" end
+    local NEI = neighbors(sizeOf(board))
     local nb = copy(board)
     nb[idx] = who
     local opp, captured = other(who), 0
@@ -79,7 +92,8 @@ end
 function Core.area(board)
     local b, w = 0, 0
     local seen = {}
-    for i = 1, N * N do
+    local NEI = neighbors(sizeOf(board))
+    for i = 1, #board do
         local v = board[i]
         if v == HUMAN then b = b + 1
         elseif v == AI then w = w + 1
@@ -109,9 +123,10 @@ function Core.margin(board)
     return b - w - KOMI, b, w
 end
 
-function Core.fresh()
+function Core.fresh(n)
+    n = n or DEFAULT_SIZE
     local b = {}
-    for i = 1, N * N do b[i] = EMPTY end
+    for i = 1, n * n do b[i] = EMPTY end
     return { board = b, turn = HUMAN, prev = nil, passes = 0, over = false, history = {} }
 end
 
@@ -149,6 +164,7 @@ end
 
 --- 空点 idx 是否是 who 的真眼候选（四周全是己方棋子，边角容许）
 local function isEye(board, idx, who)
+    local NEI = neighbors(sizeOf(board))
     for _, j in ipairs(NEI[idx]) do
         if board[j] ~= who then return false end
     end
@@ -164,6 +180,10 @@ end
 --- 为 AI 评估所有合法着法，返回最佳着法下标（无好棋则 nil 表示虚着）
 function Core.aiMove(s, rng)
     local board = s.board
+    local N = sizeOf(board)
+    local NEI = neighbors(N)
+    local mid = (N + 1) / 2
+    local stars = STARS[N] or {}
     local best, bi = 1.5, nil
     local stones = 0
     for i = 1, N * N do if board[i] ~= EMPTY then stones = stones + 1 end end
@@ -227,11 +247,17 @@ function Core.aiMove(s, rng)
                 if libs == 2 then score = score - 1 end
                 if owned[idx] == "enemy" then score = score - 3 end
                 -- 位置：靠近中心、星位，并且在棋子附近
-                local dc = math.abs(r - 5) + math.abs(c - 5)
-                score = score + (8 - dc) * 0.25
+                local dc = math.abs(r - mid) + math.abs(c - mid)
+                score = score + (N - 1 - dc) * 0.25
                 if r == 1 or c == 1 or r == N or c == N then score = score - 1.5 end
-                if stones < 8 and (r == 3 or r == 7) and (c == 3 or c == 7) then score = score + 1.5 end
-                if stones < 8 and r == 5 and c == 5 then score = score + 2.5 end
+                if stones < N - 1 then
+                    local rs, cs = false, false
+                    for _, v in ipairs(stars) do
+                        if r == v then rs = true end
+                        if c == v then cs = true end
+                    end
+                    if rs and cs then score = score + (r == mid and c == mid and 2.5 or 1.5) end
+                end
                 if near(idx, 1) then score = score + 1.2 elseif near(idx, 2) then score = score + 0.8 end
                 -- 贴着己方棋却不增加气的废着
                 if libs <= 2 and cap == 0 then score = score - 1 end
@@ -274,7 +300,7 @@ function Core.undo(s)
     return true
 end
 
-local M = { id = "go9", title = T("围棋"), icon = "radio_button_unchecked", tier = "A", desc = T("九路对弈"), help = T("九路围棋，你执黑先行，点按交叉点落子。\n棋子没有「气」（相邻的空点）就会被提走；不能下在没有气的地方（禁入点），也不能立刻提回刚被提的一子（打劫）。\n觉得没处可下时点「虚着」。双方连续虚着后终局，按数子法计分：棋子加围住的空点，白棋贴 7.5 目，多者获胜。\n终局时棋盘上的棋子都算活棋，请在虚着前先提掉对方的死子。"), core = Core }
+local M = { id = "go9", title = T("围棋"), icon = "radio_button_unchecked", tier = "A", desc = T("人机对弈，9/13/19 路"), help = T("围棋，你执黑先行，点按交叉点落子。可在设置里选 9、13、19 路棋盘，新手建议 9 路。\n棋子没有「气」（相邻的空点）就会被提走；不能下在没有气的地方（禁入点），也不能立刻提回刚被提的一子（打劫）。\n觉得没处可下时点「虚着」。双方连续虚着后终局，按数子法计分：棋子加围住的空点，白棋贴 7.5 目，多者获胜。\n终局时棋盘上的棋子都算活棋，请在虚着前先提掉对方的死子。"), core = Core }
 
 function M.new(ctx)
     local self = {}
@@ -305,7 +331,14 @@ function M.new(ctx)
         self.render()
     end
 
-    local function tap(r, c) move((r - 1) * N + c) end
+    local function tap(r, c) move((r - 1) * sizeOf(s.board) + c) end
+
+    local function newGame(n)
+        s = Core.fresh(n)
+        note = nil
+        persist()
+        self.render()
+    end
 
     function self.render()
         local status
@@ -320,10 +353,12 @@ function M.new(ctx)
             status = T("轮到你（黑）")
         end
         if not s.over then status = status .. (T("    累计获胜 %d 局")):format(ctx:best("wins") or 0) end
+        local N = sizeOf(s.board)
         local ownerOf = {}
         if s.over then
             -- 空点归属：只被一方包围的空域
             local seen = {}
+            local NEI = neighbors(N)
             for i = 1, N * N do
                 if s.board[i] == EMPTY and not seen[i] then
                     local stack, region, tb, tw = { i }, {}, false, false
@@ -343,12 +378,20 @@ function M.new(ctx)
                 end
             end
         end
+        local stars = {}
+        for _, r in ipairs(STARS[N] or {}) do
+            for _, c in ipairs(STARS[N]) do stars[#stars + 1] = { r, c } end
+        end
+        local size_row = {}
+        for _, n in ipairs(SIZES) do
+            size_row[#size_row + 1] = { text = T("%d 路", n), selected = n == N, callback = function() if n ~= N then newGame(n) end end }
+        end
         ctx:render({
             title = T("围棋"),
             status = status,
             grid = {
                 rows = N, cols = N, on_tap = tap, style = "go",
-                stars = { { 3, 3 }, { 3, 7 }, { 5, 5 }, { 7, 3 }, { 7, 7 } },
+                stars = stars,
                 cell = function(r, c)
                     local idx = (r - 1) * N + c
                     local v = s.board[idx]
@@ -359,11 +402,12 @@ function M.new(ctx)
                     return {}
                 end,
             },
+            settings = { groups = { { label = T("棋盘"), options = size_row } }, reset = function() newGame(N) end },
             buttons = {
                 {
                     { text = T("虚着"), enabled = not s.over and s.turn == HUMAN, callback = function() move("pass") end },
                     { text = T("悔棋"), enabled = #s.history > 0, callback = function() Core.undo(s) note = nil persist() self.render() end },
-                    { text = T("新局"), callback = function() s = Core.fresh() note = nil persist() self.render() end },
+                    { text = T("新局"), callback = function() newGame(N) end },
                 },
             },
         })

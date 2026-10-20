@@ -74,6 +74,32 @@ return function(t)
         assert(s.over)
     end)
 
+    test("go9 13 and 19 boards: capture, AI speed, size switch", function()
+        for _, n in ipairs({ 13, 19 }) do
+            local s = C.fresh(n)
+            assert(#s.board == n * n)
+            -- corner capture: black at (1,2)... white at (1,1) has 2 liberties; take both
+            s.board[1] = 2
+            assert(C.play(s, 2))
+            s.turn = 1
+            local nb, cap = C.place(s.board, n + 1, 1, nil)
+            assert(nb and cap == 1 and nb[1] == 0)
+            local f = C.fresh(n)
+            f.board[n * n] = 1
+            local t0 = os.clock()
+            local mv = C.aiMove({ board = f.board, turn = 2 }, t.Rng and t.Rng.new(1))
+            assert(mv and os.clock() - t0 < 2)
+        end
+        H.saved, H.view = {}, nil
+        require("kogames.registry").launch(H.host, M, nil)
+        local sizes = H.view.settings.groups[1].options
+        assert(#sizes == 3)
+        sizes[3].callback()
+        assert(#H.saved.go9.state.board == 361 and H.view.grid.rows == 19)
+        H.view.grid.on_tap(19, 19)
+        assert(H.saved.go9.state.board[361] == 1)
+    end)
+
     test("go9 session: tap, pass, undo", function()
         H.saved, H.view = {}, nil
         require("kogames.registry").launch(H.host, M, nil)
