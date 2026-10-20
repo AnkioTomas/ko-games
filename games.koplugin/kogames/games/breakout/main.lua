@@ -9,7 +9,7 @@ local COLS, ROWS, BW, BH, BY0 = 10, 7, 10, 5, 20
 local PY, PH, PW = 126, 3, 20
 local R = 1.5
 local MAXANG = math.rad(60)
-local INTERVAL = 0.28
+local INTERVAL = 0.2
 
 local Core = { W = W, H = H, COLS = COLS, ROWS = ROWS, BW = BW, BH = BH, BY0 = BY0, PY = PY, PH = PH, PW = PW, R = R }
 

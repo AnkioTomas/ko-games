@@ -13,6 +13,7 @@ end
 function Host:showScreen(view)
     local UIManager = require("ui/uimanager")
     local old = self.widget
+    if old and old.tryUpdate and old:tryUpdate(view) then return end
     self.widget = require("kogames.ui.screen").open(view, function()
         self.widget = nil
         if view.on_close then view.on_close() end

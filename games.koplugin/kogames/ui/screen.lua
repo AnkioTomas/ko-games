@@ -576,12 +576,32 @@ function GameScreen:init()
     add(VerticalSpan:new{ width = px(10) }, px(10))
 
     if v.status then
-        add(CenterContainer:new{ dimen = Geom:new{ w = inner, h = px(32) }, k.line("body", v.status, inner) }, px(32))
+        self.status_box = CenterContainer:new{ dimen = Geom:new{ w = inner, h = px(32) }, k.line("body", v.status, inner) }
+        add(self.status_box, px(32))
         add(VerticalSpan:new{ width = px(6) }, px(6))
     end
 
+    self.kit, self.inner = k, inner
+    -- 按钮回调经 self.view 间接调用，原地刷新换了 view 后仍然指向最新状态
     local rows = {}
-    for _, entry in ipairs(v.buttons or {}) do rows[#rows + 1] = entry end
+    for ri, entry in ipairs(v.buttons or {}) do
+        if entry.label then
+            rows[#rows + 1] = entry
+        else
+            local wrapped = {}
+            for bi, b in ipairs(entry) do
+                local copy = setmetatable({}, { __index = b })
+                if b.callback then
+                    copy.callback = function(...)
+                        local cur = self.view.buttons and self.view.buttons[ri] and self.view.buttons[ri][bi]
+                        if cur and cur.callback then return cur.callback(...) end
+                    end
+                end
+                wrapped[bi] = copy
+            end
+            rows[#rows + 1] = wrapped
+        end
+    end
     local btn_total = 0
     for _, entry in ipairs(rows) do btn_total = btn_total + (entry.label and px(26) or (k.btn_h + gap)) end
 
@@ -652,6 +672,40 @@ function GameScreen:init()
     if Device:hasKeys() then
         self.key_events = { BackKG = { { Device.input.group.Back } } }
     end
+end
+
+local function layoutSig(v)
+    local t = { v.title or "", v.status and "s" or "", v.canvas and "c" or "", v.settings and "g" or "",
+        v.help_now and "h" or "", v.settings_now and "n" or "" }
+    for _, entry in ipairs(v.buttons or {}) do
+        if entry.label then
+            t[#t + 1] = entry.label
+        else
+            for _, b in ipairs(entry) do
+                t[#t + 1] = table.concat({ b.text or "", b.icon or "", tostring(b.enabled), tostring(b.selected) }, "|")
+            end
+        end
+    end
+    return table.concat(t, "\n")
+end
+
+--- 实时游戏每拍换帧：界面骨架不变时只替换画布和状态行，并只对这两块做快速刷新。返回是否已原地更新
+function GameScreen:tryUpdate(view)
+    if not (self.cv and view.canvas and view.canvas.w == self.view.canvas.w and view.canvas.h == self.view.canvas.h) then
+        return false
+    end
+    self.sig = self.sig or layoutSig(self.view)
+    if layoutSig(view) ~= self.sig then return false end
+    self.view = view
+    self.cv.canvas = view.canvas
+    self.cv.assets = view.assets
+    local region = self.cv.dimen:copy()
+    if self.status_box and view.status then
+        self.status_box[1] = self.kit.line("body", view.status, self.inner)
+        region = region:combine(self.status_box.dimen)
+    end
+    UIManager:setDirty(self, "fast", region)
+    return true
 end
 
 function GameScreen:onTap(_, ges)

@@ -6,7 +6,7 @@ local T = require("kogames.l10n")
 local LEVELS = require("kogames.games.mario.levels")
 
 local COLS, ROWS, TILE = 9, 9, 8
-local INTERVAL = 0.3
+local INTERVAL = 0.22
 local SOLID = { ["#"] = true, B = true, ["?"] = true, X = true, P = true }
 local LIVES = 3
 

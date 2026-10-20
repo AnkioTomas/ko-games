@@ -14,7 +14,7 @@ local LEVELS = {
     { gap = 44, speed = 7 },
     { gap = 38, speed = 8 },
 }
-local INTERVAL = 0.3
+local INTERVAL = 0.22
 
 local Core = { W = W, H = H, GROUND = GROUND, BIRD_X = BIRD_X, BIRD_R = BIRD_R, PIPE_W = PIPE_W,
     SPACING = SPACING, MAX_SHIFT = MAX_SHIFT, LEVELS = LEVELS }
