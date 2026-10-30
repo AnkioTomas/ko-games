@@ -58,13 +58,13 @@ local widget = {
     end,
 }
 
--- 月读设置里的「游戏 - Games（版本号）」页：自动检查更新开关与手动检查。
+-- 月读设置「游戏」组 → 三级页：自动 / 手动检查更新。
 local function settingEntries(desktop)
     local Update = require("kogames.update")
     local Row = require("ui.themes.widgets.row")
     return { {
-        group = "system",
-        order = 90,
+        group = "games",
+        order = 10,
         id = "main",
         icon = "sports_esports",
         title = string.format("%s - Games（%s）", _("游戏"), Update.version()),
